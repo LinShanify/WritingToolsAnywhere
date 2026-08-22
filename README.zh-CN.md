@@ -195,7 +195,6 @@ tccutil reset Accessibility com.linshan.WritingToolsAnywhere
 —— 签名有问题会在这里失败，而不是在别人的 Mac 上失败。
 
 `setup-notarize.sh` 检查 Developer ID 配置、补装 Apple 中间证书、存好公证凭据。
-`backup-signing.sh` 导出签名身份 —— 它只存在于生成它的那个钥匙串里。
 
 ## 源码结构
 

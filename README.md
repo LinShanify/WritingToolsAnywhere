@@ -219,8 +219,7 @@ signed, notarised and stapled, and the script asserts the result the way Gatekee
 will see it — a broken signature fails here rather than on someone else's Mac.
 
 `setup-notarize.sh` checks the Developer ID setup, installs Apple's intermediate
-certificate if it's missing, and stores notarisation credentials. `backup-signing.sh`
-exports the signing identity, which lives only in the keychain that created it.
+certificate if it's missing, and stores notarisation credentials.
 
 ## Project layout
 
