@@ -12,19 +12,28 @@ Writing Tools never shows up in, like Microsoft Teams, Slack and VS Code.
 ## What it does
 
 Select text anywhere, and a small ✨ bubble appears beside it. Hover, and it opens
-into a row of one-click actions:
+into three things:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│ ✓Proofread  ↻Rewrite  ☺Friendly  ▣Professional  ≡Concise  ✨More │
-└─────────────────────────────────────────────────────────┘
+┌────────────────────────────────────┐
+│  ✓ Proofread   🄰 Translate   ✨ More │
+└────────────────────────────────────┘
 ```
 
-The first five rewrite the text and replace it in place, about a second or two.
-The sixth opens an editor panel and brings up Apple's own Writing Tools.
+- **Proofread** — fixes grammar, spelling and awkward phrasing, then replaces the text
+  in place. It keeps your voice and length; it does not make you sound corporate.
+- **Translate** — between your language and English, direction picked automatically.
+- **More** — opens an editor panel and brings up **Apple's own Writing Tools**, with
+  every tone and summary option Apple ships.
 
 There's also a global shortcut (`⌥⌘W`) that goes straight to the editor panel, for
 apps where the bubble can't read the selection.
+
+**Inline is deliberately one thing.** Earlier versions had five one-click rewrites —
+friendly, professional, concise and so on. Measured against real chat messages they
+ranged from redundant to broken, for a reason that can't be prompted away (see
+[Quality ceiling](#quality-ceiling-why-inline-cant-match-apple)). Anything beyond
+"make the grammar right" belongs in Apple's panel, which has the models for it.
 
 ## How it works
 
@@ -108,13 +117,17 @@ Menu bar ✨ → **Settings…** (`⌘,`)
 | General | Bubble | Turn it off to use the shortcut only |
 | General | Shortcut | Modifier checkboxes + key menu, applied immediately |
 | Language | Interface | System / 简体中文 / English |
+| Language | My language | Translation runs between this and English, direction chosen automatically. Set it to English and everything non-English becomes English. |
+| Language | Download Languages… | Jumps to System Settings, where Apple's translation language packs are installed |
 | Advanced | Auto-replace | Write back as soon as Writing Tools finishes |
 | Advanced | Replace using | Simulated paste (most compatible) or Accessibility |
 | Advanced | Clipboard | Restore the previous contents afterwards |
 | Advanced | Debug log | **Off by default** — it records the text you select |
 
-Rewrites always come back in the language you wrote in — the interface language
-setting only affects the app's own UI.
+Proofreading always replies in the language you wrote in; the interface setting only
+affects the app's own UI. Translation uses Apple's built-in engine, so a language pair
+has to be downloaded in System Settings before it can be used — the bubble tells you
+which pair is missing if it isn't.
 
 Settings live in `~/Library/Application Support/WritingToolsAnywhere/config.json`.
 
@@ -160,42 +173,57 @@ xcrun notarytool store-credentials WTA \
 | `Sources/PanelController.swift` | Editor panel and the `showWritingTools:` call |
 | `Sources/TextBridge.swift` | Cross-app selection reading, write-back, clipboard safety |
 | `Sources/LLM.swift` | FoundationModels wrapper, prompts, guided generation |
+| `Sources/Translator.swift` | Translation.framework wrapper and language detection |
 | `Sources/HotKey.swift` | Carbon global hotkey (needs no extra permission) |
 | `Sources/LoginItem.swift` | Start at login |
 | `Sources/L10n.swift` | English / Chinese interface |
 | `Sources/MenuBarIcon.swift` | Menu bar glyph, drawn in code |
 | `tools/MakeIcon/main.swift` | App icon, drawn with Core Graphics at every size |
 
-## Quality ceiling: why the one-click chips can't match Apple
+## Quality ceiling: why inline can't match Apple
 
-**The one-click actions will not reach the quality of Apple's own Writing Tools, and
-they can't be made to.** If you want Apple-grade output, use the **✨ chip** — that is
-the manual path, and it runs Apple's real thing.
+The two paths in this app run on **different engines**, and that difference is the
+whole story:
 
-### Why
+| | Engine | Quality |
+|---|---|---|
+| **Inline** (Proofread) | `FoundationModels` — Apple's **general-purpose** on-device base model, prompted by this project | Good enough for grammar. Nothing more. |
+| **Translate** | `Translation.framework` — Apple's dedicated translation engine, the same one the Translate app and Safari use | Apple's own quality |
+| **More** (✨) | `showWritingTools:` — **Apple's real Writing Tools**, with its task-trained LoRA adapters | Apple's own quality |
 
-Apple's Writing Tools does not prompt a general model. It loads **task-specific LoRA
-adapters** — one trained for proofreading, one for summarising, one for tone — and
+**Apple's Writing Tools does not prompt a general model.** It loads **task-specific
+LoRA adapters** — one trained for proofreading, one for summarising, one per tone — and
 swaps them in at runtime. It then delivers results as **`(range, replacement)` pairs**
 through `NSWritingToolsCoordinator`, editing the app's existing text storage rather
 than returning a blob of prose.
 
-The public FoundationModels API gives you neither. You get the general-purpose ~3B base
-model and a whole-string response. Apple's shipped adapters are private system assets;
-`SystemLanguageModel.Adapter(name:)` loads adapters *you* provide, not Apple's.
+**Neither is reachable from the public API.** FoundationModels hands you the
+general-purpose ~3B base model and a whole-string response. Apple's shipped adapters
+are private system assets; `SystemLanguageModel.Adapter(name:)` loads adapters *you*
+provide, not Apple's.
 
-### What that costs, measured
+So inline editing is prompt engineering against a general model, and it has a ceiling.
+That is why it does one job.
 
-| Action | Behaviour on real chat messages |
-|---|---|
-| Proofread | Reliable. This is the base model's natural mode and it does it well. |
-| Professional | Needed an explicit leash. Without one, a single-line chat message came back as a 2.4× letter template — `Hi [Recipient's Name] … Best regards, [Your Name]`. |
-| Friendly | Same leash, same reason; it liked appending "Thanks for your understanding!" |
-| Rewrite | Often indistinguishable from Proofread. Low added value. |
-| Concise | **Unreliable.** Roughly half the time it hands the document straight back unchanged. Tightening the prompt made it *worse*: given "the result MUST be clearly shorter" plus a character budget, the model stopped editing altogether and copied its input. The mild prompt is kept for that reason. |
-| Translate | Not the language model at all — it fabricated. "明天" (tomorrow) came back as "Wednesday". Translation goes through `Translation.framework` instead. |
+### What the ceiling looked like
 
-Three guards make the output usable rather than good:
+The five actions that used to be here, measured on real chat messages:
+
+| Action | Behaviour | Verdict |
+|---|---|---|
+| Proofread | Reliable — the base model's natural mode | **Kept** |
+| Rewrite | Usually indistinguishable from Proofread | Folded into Proofread |
+| Professional | Without a leash, a one-line message came back as a 2.4× letter template: `Hi [Recipient's Name] … Best regards, [Your Name]` | Removed |
+| Friendly | Same problem; liked appending "Thanks for your understanding!" | Removed |
+| Concise | Returned the document unchanged about half the time. Tightening the prompt made it *worse*: given "the result MUST be clearly shorter" plus a character budget, the model stopped editing and copied its input | Removed |
+
+Translation was tried on the language model too, and rejected: it **fabricated**.
+"明天" (tomorrow) came back as "Wednesday", and an untranslated "someone" was left
+sitting in a Chinese sentence. `Translation.framework` makes ordinary word-choice
+mistakes instead of confident inventions — a very different kind of wrong to paste into
+someone's message.
+
+### What keeps the one remaining action honest
 
 1. **Guided generation.** The response is forced into a schema with a single `text`
    field, so "Here is the corrected version:" has nowhere to live. Built from
@@ -206,33 +234,37 @@ Three guards make the output usable rather than good:
    invented paragraph, and text reading "ignore your instructions" was obeyed. The
    model echoes fragments of the fence back, so the fence characters are trimmed as a
    character set rather than matched as whole markers.
-3. **A plausibility ceiling.** Each action declares how much longer than the input a
-   trustworthy result can be. Anything past that is discarded rather than pasted into
-   your document.
+3. **A plausibility ceiling.** A proofread result more than ~1.6× the input is a
+   continuation, not a correction, and is discarded rather than pasted.
 
-When a result comes back identical to the input, the bubble says so instead of pasting
-your own words back over themselves.
+When the result comes back identical to the input, the bubble says so instead of
+pasting your own words back over themselves.
 
 ### Could we train our own adapter?
 
-Technically yes. The API is public, and Apple ships a Python toolkit for training
-rank-32 LoRA adapters (Apple silicon with ≥32 GB, or a Linux GPU box). Two reasons it
-isn't worth it here:
+Technically yes. `SystemLanguageModel.Adapter` is public, and Apple ships a Python
+toolkit for training rank-32 LoRA adapters (Apple silicon with ≥32 GB, or a Linux GPU
+box). Two reasons it isn't worth it here:
 
 - **Adapters are locked to a base model version** — one adapter per system model
   version, no exceptions. A macOS update can break it, and the app then fails for
   everyone until it's retrained and reshipped.
-- **It wouldn't close the real gap.** The difference from Apple isn't only the model,
-  it's the transport: Apple edits ranges in place, we replace a whole selection. An
-  adapter doesn't change that.
+- **It wouldn't close the real gap.** The difference isn't only the model, it's the
+  transport: Apple edits ranges in place, we replace a whole selection. An adapter
+  doesn't change that.
 
-The honest division of labour: **the chips are the convenience path, the ✨ chip is the
-quality path.** It puts your text into a real `NSTextView` and calls
-`showWritingTools:`, so you get Apple's own adapters, prompts, and accept/reject UI —
-in an app that was never going to offer them.
+**The honest division of labour: inline is the convenience path, ✨ is the quality
+path.** It puts your text into a real `NSTextView` and calls `showWritingTools:`, so
+you get Apple's own adapters, prompts, and accept/reject UI — in an app that was never
+going to offer them.
 
-## Known limitations## Known limitations
+## Known limitations## Known limitations## Known limitations
 
+- Translation needs Apple's language packs installed (System Settings → General →
+  Language & Region → Translation Languages). Missing pairs are reported by name.
+- Language detection needs a few words. Below 0.6 confidence — "ok" scores as Polish,
+  "LGTM" as Turkish — the direction falls back to your configured pair rather than
+  trusting the guess.
 - Plain text only — bold, links and other rich formatting are lost.
 - "Simulated paste" briefly takes over the clipboard before restoring it. Clipboard
   managers may record that one entry.

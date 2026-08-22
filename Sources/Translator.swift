@@ -53,14 +53,22 @@ enum TranslateError: LocalizedError {
 /// different kind of wrong to paste into someone's message.
 enum Translator {
 
-    /// Which way to translate: whichever of the configured pair the text *isn't*.
-    /// Text in some third language goes to the primary.
-    static func direction(for text: String, primary: String, secondary: String)
-        -> (source: String, target: String) {
-        let detected = detectLanguage(text, fallbackPair: (primary, secondary))
+    /// The counterpart is always English: the whole point is moving between the
+    /// language you think in and the one work happens in.
+    static let counterpart = "en"
 
-        if matches(detected, primary) { return (detected, secondary) }
-        if matches(detected, secondary) { return (detected, primary) }
+    /// Which way to translate, or nil when there's nothing to do.
+    ///
+    /// With a primary of, say, Chinese: Chinese goes to English, English comes back to
+    /// Chinese, and a third language goes to Chinese. With a primary of English there is
+    /// no pair — everything becomes English, and English itself is left alone.
+    static func direction(for text: String, primary: String) -> (source: String, target: String)? {
+        let detected = detectLanguage(text, fallbackPair: (primary, counterpart))
+
+        if matches(primary, counterpart) {
+            return matches(detected, counterpart) ? nil : (detected, counterpart)
+        }
+        if matches(detected, primary) { return (detected, counterpart) }
         return (detected, primary)
     }
 
@@ -88,8 +96,9 @@ enum Translator {
         a == b || a.split(separator: "-").first == b.split(separator: "-").first
     }
 
-    static func run(_ text: String, primary: String, secondary: String) async throws -> String {
-        let (source, target) = direction(for: text, primary: primary, secondary: secondary)
+    /// Returns nil when the text is already in the only language we'd translate it to.
+    static func run(_ text: String, primary: String) async throws -> String? {
+        guard let (source, target) = direction(for: text, primary: primary) else { return nil }
         let from = Locale.Language(identifier: source)
         let to = Locale.Language(identifier: target)
 

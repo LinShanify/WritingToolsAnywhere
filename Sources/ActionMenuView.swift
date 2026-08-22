@@ -87,38 +87,37 @@ final class ActionChip: NSView {
     }
 }
 
-/// The expanded bubble: five one-click actions plus a way into Apple's own panel,
-/// all as equal chips on one row.
+/// The expanded bubble: proofread, translate, and a way into Apple's own panel.
 final class ActionMenuView: NSView {
-    static let preferredSize = NSSize(width: 396, height: 64)
+    static let preferredSize = NSSize(width: 288, height: 64)
 
-    var onAction: ((QuickAction) -> Void)?
-    var onWritingTools: (() -> Void)?
+    var onAction: ((BubbleAction) -> Void)?
 
-    init(quickActionsEnabled: Bool, disabledReason: String = "") {
+    init(proofreadEnabled: Bool, disabledReason: String = "") {
         super.init(frame: NSRect(origin: .zero, size: Self.preferredSize))
 
         let row = NSStackView()
         row.orientation = .horizontal
         row.distribution = .fillEqually
-        row.spacing = 3
+        row.spacing = 4
         row.translatesAutoresizingMaskIntoConstraints = false
 
-        for action in QuickAction.allCases {
+        for action in BubbleAction.allCases {
             let chip = ActionChip(symbolName: action.symbol, title: action.title)
-            chip.isDisabled = !quickActionsEnabled
-            chip.toolTip = quickActionsEnabled
-                ? L("一键\(action.title)并替换原文", "\(action.title) and replace the text")
-                : disabledReason
+            if action == .proofread {
+                chip.isDisabled = !proofreadEnabled
+                chip.toolTip = proofreadEnabled
+                    ? L("修正语法并替换原文", "Fix the grammar and replace the text")
+                    : disabledReason
+            } else if action == .translate {
+                chip.toolTip = L("在你的语言和英文之间翻译", "Translate between your language and English")
+            } else {
+                chip.toolTip = L("打开编辑面板并唤起 Apple 原版 Writing Tools",
+                                 "Open the editor and Apple's own Writing Tools")
+            }
             chip.onClick = { [weak self] in self?.onAction?(action) }
             row.addArrangedSubview(chip)
         }
-
-        let more = ActionChip(symbolName: "sparkles", title: L("写作工具", "More"))
-        more.toolTip = L("打开编辑面板并唤起 Apple 原版 Writing Tools",
-                         "Open the editor and Apple's own Writing Tools")
-        more.onClick = { [weak self] in self?.onWritingTools?() }
-        row.addArrangedSubview(more)
 
         addSubview(row)
         NSLayoutConstraint.activate([

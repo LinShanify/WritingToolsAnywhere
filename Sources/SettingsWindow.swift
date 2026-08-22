@@ -137,8 +137,38 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         }
         grid.addRow(with: [label(L("界面语言", "Interface")), ui])
 
-        hint(grid, L("改写结果始终使用原文的语言。",
-                     "Rewrites always come back in the language you wrote in."))
+        let codes = TranslateLanguage.all.map(\.code)
+        let primary = popup(TranslateLanguage.all.map(\.label),
+                            selected: codes.firstIndex(of: prefs.primaryLanguage) ?? 0) { [weak self] i in
+            self?.mutate { $0.primaryLanguage = codes[i] }
+            self?.refreshers.forEach { $0() }
+        }
+        grid.addRow(with: [label(L("我的语言", "My language")), primary])
+
+        let explanation = NSTextField(wrappingLabelWithString: "")
+        explanation.font = .systemFont(ofSize: 11)
+        explanation.textColor = .tertiaryLabelColor
+        explanation.preferredMaxLayoutWidth = 340
+        grid.addRow(with: [spacer(), explanation])
+        refreshers.append { [weak self] in
+            guard let self else { return }
+            let mine = TranslateLanguage.label(for: self.prefs.primaryLanguage)
+            explanation.stringValue = self.prefs.primaryLanguage == Translator.counterpart
+                ? L("翻译会把任何非英文的文字转成英文；英文原样保留。",
+                    "Translate turns anything that isn't English into English, and leaves English alone.")
+                : L("翻译会自动判断方向：\(mine) 转英文，英文转\(mine)，其他语言也转成\(mine)。",
+                    "Translate picks the direction for you: \(mine) to English, English back to "
+                    + "\(mine), and any other language to \(mine).")
+        }
+
+        let download = button(L("下载语言包…", "Download Languages…")) {
+            NSWorkspace.shared.open(URL(
+                string: "x-apple.systempreferences:com.apple.Localization-Settings.extension")!)
+        }
+        grid.addRow(with: [spacer(), download])
+        hint(grid, L("翻译使用 Apple 内置的翻译引擎，语言包需要先在系统设置里下载。",
+                     "Translation uses Apple's built-in engine; language pairs must be "
+                     + "downloaded in System Settings first."))
     }
 
     private func buildAdvanced(_ grid: NSGridView) {

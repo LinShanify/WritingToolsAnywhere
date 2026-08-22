@@ -58,8 +58,7 @@ final class BubbleController: NSObject {
     private var selection: Selection?
     private var hideWork: DispatchWorkItem?
 
-    var onQuickAction: ((QuickAction, Selection) -> Void)?
-    var onOpenWritingTools: ((Selection) -> Void)?
+    var onAction: ((BubbleAction, Selection) -> Void)?
 
     override init() {
         super.init()
@@ -126,10 +125,9 @@ final class BubbleController: NSObject {
     }
 
     private func makeMenuView() -> NSView {
-        let view = ActionMenuView(quickActionsEnabled: LLM.isAvailable,
+        let view = ActionMenuView(proofreadEnabled: LLM.isAvailable,
                                   disabledReason: LLM.unavailableReason)
-        view.onAction = { [weak self] action in self?.runQuick(action) }
-        view.onWritingTools = { [weak self] in self?.openWritingTools() }
+        view.onAction = { [weak self] action in self?.fire(action) }
         return view
     }
 
@@ -251,19 +249,17 @@ final class BubbleController: NSObject {
         setMode(.menu)
     }
 
-    private func runQuick(_ action: QuickAction) {
+    private func fire(_ action: BubbleAction) {
         guard let selection else { return }
-        Log.write("bubble: run \(action.rawValue) on \(selection.text.prefix(20))")
-        workingLabel.stringValue = L("\(action.title)中…", "\(action.title)…")
-        setMode(.working)
-        spinner.startAnimation(nil)
-        onQuickAction?(action, selection)
-    }
-
-    private func openWritingTools() {
-        guard let selection else { return }
-        hide()
-        onOpenWritingTools?(selection)
+        Log.write("bubble: \(action.title) on \(selection.text.prefix(20))")
+        if action == .writingTools {
+            hide()
+        } else {
+            workingLabel.stringValue = L("\(action.title)中…", "\(action.title)…")
+            setMode(.working)
+            spinner.startAnimation(nil)
+        }
+        onAction?(action, selection)
     }
 
     func showMessage(_ message: String) {

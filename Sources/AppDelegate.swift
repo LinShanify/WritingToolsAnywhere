@@ -22,11 +22,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.installEscapeMonitor()
 
         bubble = BubbleController()
-        bubble.onQuickAction = { [weak self] action, selection in
-            self?.runQuickAction(action, on: selection)
-        }
-        bubble.onOpenWritingTools = { [weak self] selection in
-            self?.openPanel(with: selection)
+        bubble.onAction = { [weak self] action, selection in
+            self?.perform(action, on: selection)
         }
 
         watcher = SelectionWatcher(
@@ -127,17 +124,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         TextBridge.Capture(text: selection.text, app: selection.app, element: selection.element)
     }
 
-    private func runQuickAction(_ action: QuickAction, on selection: Selection) {
+    private func perform(_ action: BubbleAction, on selection: Selection) {
+        switch action {
+        case .writingTools:
+            openPanel(with: selection)
+        case .proofread:
+            transform(selection) { try await LLM.proofread($0) }
+        case .translate:
+            transform(selection) { [primary = prefs.primaryLanguage] text in
+                try await Translator.run(text, primary: primary)
+            }
+        }
+    }
+
+    /// Runs an edit and writes the result back, with the two outcomes that aren't a
+    /// result — nothing to do, and something went wrong — surfaced in the bubble
+    /// instead of silently pasting.
+    private func transform(_ selection: Selection,
+                           _ work: @escaping (String) async throws -> String?) {
         let cap = capture(from: selection)
         let prefs = self.prefs
         Task {
             do {
-                let result = try await LLM.run(action, on: selection.text)
+                let result = try await work(selection.text)
 
-                // The small model sometimes declines to transform the text and hands it
-                // straight back. Say so rather than round-tripping the clipboard to
-                // paste the user's own words on top of themselves.
-                guard result != selection.text else {
+                guard let result, result != selection.text else {
                     await MainActor.run {
                         self.bubble.showMessage(L("没有可改的地方", "Nothing to change"))
                     }
