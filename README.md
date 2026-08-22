@@ -144,21 +144,34 @@ Settings live in `~/Library/Application Support/WritingToolsAnywhere/config.json
 ## Building a release
 
 ```bash
-./package.sh                  # build, sign, and produce dist/*.dmg
-./package.sh --notarize WTA   # also notarise and staple
+./setup-notarize.sh           # once: check the Developer ID setup, store credentials
+./package.sh --notarize WTA   # build, sign, notarise, staple, produce dist/*.dmg
 ```
+
+`./package.sh` on its own still works and skips notarisation.
 
 Signing is picked automatically: a `Developer ID Application` certificate if you have
 one (hardened runtime + secure timestamp, ready to notarise), otherwise ad-hoc with a
 printed warning. The local development certificate is deliberately never used for
 distribution — it's trusted only on the machine that created it.
 
-To notarise you need an Apple Developer account, then once:
+Notarising needs an Apple Developer account and a **Developer ID Application**
+certificate. `setup-notarize.sh` checks what's present and walks through the rest; the
+only thing to obtain by hand is the certificate itself:
 
-```bash
-xcrun notarytool store-credentials WTA \
-    --apple-id you@example.com --team-id TEAMID --password APP-SPECIFIC-PASSWORD
-```
+1. **Keychain Access → Certificate Assistant → Request a Certificate From a Certificate
+   Authority**, saved to disk. The private key stays in your keychain.
+2. [developer.apple.com/account/resources/certificates](https://developer.apple.com/account/resources/certificates)
+   → **+** → **Developer ID Application** → upload the request → download the `.cer`.
+3. Double-click the `.cer` to install it.
+
+No Xcode is needed for any of this — `notarytool` and `stapler` ship with the Command
+Line Tools. The app signs cleanly under the hardened runtime that notarisation
+requires, and needs no entitlements: everything it uses is either a system framework or
+gated by TCC rather than by entitlement.
+
+An individual certificate carries your legal name, and it is visible to anyone who runs
+`codesign -dvv` on the app.
 
 ## Project layout
 

@@ -14,7 +14,5 @@
     <key>LSUIElement</key>             <true/>
     <key>NSPrincipalClass</key>        <string>NSApplication</string>
     <key>NSHighResolutionCapable</key> <true/>
-    <key>NSAppleEventsUsageDescription</key>
-    <string>用于把改写后的文字写回你正在使用的应用。</string>
 </dict>
 </plist>
