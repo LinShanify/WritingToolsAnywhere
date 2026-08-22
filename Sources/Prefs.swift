@@ -54,10 +54,14 @@ struct Prefs: Codable {
     /// Off by default: the log records the text you select, which shouldn't hit disk
     /// unless you're actively debugging.
     var debugLogging = false
+    var checkForUpdates = true
+    /// A version the user chose not to be reminded about again.
+    var skippedVersion = ""
 
     enum K: String, CodingKey {
         case hotkey, hotkeyEnabled, bubbleEnabled, autoApply, uiLanguage, primaryLanguage
         case writeBackMode, restoreClipboard, captureViaAX, debugLogging
+        case checkForUpdates, skippedVersion
     }
 
     init() {}
@@ -74,6 +78,8 @@ struct Prefs: Codable {
         restoreClipboard = try c.decodeIfPresent(Bool.self, forKey: .restoreClipboard) ?? true
         captureViaAX = try c.decodeIfPresent(Bool.self, forKey: .captureViaAX) ?? true
         debugLogging = try c.decodeIfPresent(Bool.self, forKey: .debugLogging) ?? false
+        checkForUpdates = try c.decodeIfPresent(Bool.self, forKey: .checkForUpdates) ?? true
+        skippedVersion = try c.decodeIfPresent(String.self, forKey: .skippedVersion) ?? ""
     }
 
     static var url: URL {

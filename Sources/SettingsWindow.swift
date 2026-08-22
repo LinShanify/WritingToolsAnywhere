@@ -211,6 +211,19 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         }
         grid.addRow(with: [label(L("诊断", "Diagnostics")), log])
 
+        let updates = checkbox(L("自动检查更新", "Check for updates automatically"),
+                               prefs.checkForUpdates) { [weak self] on in
+            self?.mutate { $0.checkForUpdates = on }
+        }
+        let checkNow = button(L("现在检查", "Check Now")) {
+            (NSApp.delegate as? AppDelegate)?.checkForUpdate(announce: true)
+        }
+        let updateRow = NSStackView(views: [updates, checkNow])
+        updateRow.spacing = 10
+        grid.addRow(with: [label(L("更新", "Updates")), updateRow])
+        hint(grid, L("当前版本 \(UpdateChecker.currentVersion)。只读取 GitHub 的公开发布信息，不上传任何内容。",
+                     "Version \(UpdateChecker.currentVersion). Reads GitHub's public releases and sends nothing back."))
+
         let copy = button(L("复制诊断信息", "Copy Diagnostics")) { [weak self] in
             guard let self else { return }
             let pb = NSPasteboard.general

@@ -71,7 +71,7 @@ Apple 公证，双击直接打开，没有任何警告。
 ```
 
 首次启动会请求**辅助功能**权限：系统设置 → 隐私与安全性 → 辅助功能 →
-打开 `WritingToolsAnywhere`，然后重启 App。
+打开 `WritingToolsAnywhere`。开关一打开就立即生效，**不需要重启 App**。
 
 ### 为什么需要 setup-signing.sh
 
@@ -106,6 +106,7 @@ tccutil reset Accessibility com.linshan.WritingToolsAnywhere
 | 高级 | 自动替换 | 写作工具面板结束后自动写回 |
 | 高级 | 替换方式 | 模拟粘贴（兼容性最好）/ 辅助功能直接写入 |
 | 高级 | 剪贴板 | 用完后恢复原有内容 |
+| 高级 | 更新 | 检查 GitHub 上有没有新版本，可自动也可手动 |
 | 高级 | 调试日志 | **默认关闭** —— 打开后会把你选中的文字写入本地日志 |
 
 校对结果始终使用原文的语言，界面语言只影响 App 自身的 UI。翻译走 Apple 内置引擎，

@@ -9,6 +9,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settings: SettingsWindow!
     private var statusItem: NSStatusItem!
     private var busy = false
+    private var trustTimer: Timer?
+    private var updateTimer: Timer?
+    private var pendingUpdate: AppRelease?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -46,12 +49,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.image = MenuBarIcon.image()
         rebuildMenu()
 
-        if TextBridge.isTrusted {
-            watcher.start()
-        } else {
-            promptForAccessibility()
-        }
+        awaitAccessibility()
         checkAppleIntelligence()
+        scheduleUpdateChecks()
     }
 
     // MARK: - Menu
@@ -72,6 +72,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                   keyEquivalent: "")
             warn.target = self
             menu.addItem(warn)
+        }
+
+        if let release = pendingUpdate {
+            menu.addItem(.separator())
+            let update = NSMenuItem(title: L("↓ 有新版本 \(release.version)",
+                                             "↓ Version \(release.version) available"),
+                                    action: #selector(openUpdatePage), keyEquivalent: "")
+            update.target = self
+            menu.addItem(update)
         }
 
         menu.addItem(.separator())
@@ -221,6 +230,97 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.hide(nil)
     }
 
+    /// Granting Accessibility doesn't notify the app, and the old build simply never
+    /// looked again — you had to relaunch for the bubble to start working. Poll instead,
+    /// so flipping the switch in System Settings takes effect straight away.
+    private func awaitAccessibility() {
+        trustTimer?.invalidate()
+        trustTimer = nil
+
+        guard !TextBridge.isTrusted else {
+            watcher.start()
+            return
+        }
+        promptForAccessibility()
+
+        trustTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
+            guard let self, TextBridge.isTrusted else { return }
+            timer.invalidate()
+            self.trustTimer = nil
+            self.watcher.start()
+            Log.write("accessibility granted without a relaunch")
+        }
+    }
+
+    // MARK: - Updates
+
+    private func scheduleUpdateChecks() {
+        guard prefs.checkForUpdates else { return }
+        // Give launch a moment to settle before touching the network.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+            self?.checkForUpdate(announce: false)
+        }
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 24 * 3600, repeats: true) { [weak self] _ in
+            self?.checkForUpdate(announce: false)
+        }
+    }
+
+    /// `announce` distinguishes the user asking from the timer firing: a manual check
+    /// should say "you're up to date", an automatic one should stay quiet.
+    func checkForUpdate(announce: Bool) {
+        Task { @MainActor in
+            do {
+                let release = try await UpdateChecker.check()
+                guard let release else {
+                    if announce {
+                        self.warn(L("已是最新版本", "You're up to date"),
+                                  L("当前版本 \(UpdateChecker.currentVersion)。",
+                                    "Version \(UpdateChecker.currentVersion) is the latest."))
+                    }
+                    return
+                }
+                Log.write("update available: \(release.version) (running \(UpdateChecker.currentVersion))")
+                self.pendingUpdate = release
+                self.rebuildMenu()
+                if announce || release.version != self.prefs.skippedVersion {
+                    self.offerUpdate(release)
+                }
+            } catch {
+                if announce {
+                    self.warn(L("检查更新失败", "Couldn't check for updates"),
+                              error.localizedDescription)
+                }
+                Log.write("update check failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func offerUpdate(_ release: AppRelease) {
+        let alert = NSAlert()
+        alert.messageText = L("有新版本 \(release.version)", "Version \(release.version) is available")
+        alert.informativeText = L(
+            "你正在使用 \(UpdateChecker.currentVersion)。前往下载页面获取新版本。",
+            "You're running \(UpdateChecker.currentVersion). Open the release page to download it.")
+        alert.addButton(withTitle: L("前往下载", "Open Download Page"))
+        alert.addButton(withTitle: L("稍后", "Later"))
+        alert.addButton(withTitle: L("跳过此版本", "Skip This Version"))
+        NSApp.activate(ignoringOtherApps: true)
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            NSWorkspace.shared.open(release.page)
+        case .alertThirdButtonReturn:
+            prefs.skippedVersion = release.version
+            prefs.save()
+        default:
+            break
+        }
+        NSApp.hide(nil)
+    }
+
+    @objc private func openUpdatePage() {
+        if let release = pendingUpdate { NSWorkspace.shared.open(release.page) }
+    }
+
     @objc private func promptForAccessibility() {
         if TextBridge.requestTrust() {
             watcher.start()
@@ -245,10 +345,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.hide(nil)
     }
 
-    private func warn(_ title: String, _ body: String) {
+    private func warn(_ title: String, _ body: String, style: NSAlert.Style = .informational) {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = body
+        alert.alertStyle = style
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
         NSApp.hide(nil)

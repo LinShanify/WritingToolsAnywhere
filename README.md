@@ -79,7 +79,8 @@ Or build it yourself:
 ```
 
 On first launch it asks for **Accessibility** permission: System Settings → Privacy &
-Security → Accessibility → enable `WritingToolsAnywhere`, then relaunch.
+Security → Accessibility → enable `WritingToolsAnywhere`. It starts working the moment
+you flip the switch — no relaunch needed.
 
 ### Why `setup-signing.sh` exists
 
@@ -117,6 +118,7 @@ Menu bar ✨ → **Settings…** (`⌘,`)
 | Advanced | Auto-replace | Write back as soon as Writing Tools finishes |
 | Advanced | Replace using | Simulated paste (most compatible) or Accessibility |
 | Advanced | Clipboard | Restore the previous contents afterwards |
+| Advanced | Updates | Check GitHub for a new version, automatically or on demand |
 | Advanced | Debug log | **Off by default** — it records the text you select |
 
 Proofreading always replies in the language you wrote in; the interface setting only
