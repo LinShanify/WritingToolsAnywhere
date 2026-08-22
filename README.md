@@ -3,7 +3,7 @@
 <img src="Resources/icon-preview.png" width="112" align="right">
 
 Apple Intelligence rewriting in **any** macOS app — including the ones Apple's own
-Writing Tools never shows up in, like Microsoft Teams, Slack and VS Code.
+Writing Tools never appears in, like Microsoft Teams, Slack and VS Code.
 
 [中文说明](README.zh-CN.md)
 
@@ -11,8 +11,8 @@ Writing Tools never shows up in, like Microsoft Teams, Slack and VS Code.
 
 ## What it does
 
-Select text anywhere, and a small ✨ bubble appears beside it. Hover, and it opens
-into three things:
+Select text anywhere, and a small ✨ bubble appears beside it. Hover, and it opens into
+three things:
 
 ```
 ┌────────────────────────────────────┐
@@ -22,12 +22,12 @@ into three things:
 
 - **Proofread** — fixes grammar, spelling and awkward phrasing, then replaces the text
   in place. It keeps your voice and length; it does not make you sound corporate.
-- **Translate** — between your language and English, direction picked automatically.
+- **Translate** — between your language and English, direction chosen automatically.
 - **More** — opens an editor panel and brings up **Apple's own Writing Tools**, with
   every tone and summary option Apple ships.
 
-There's also a global shortcut (`⌥⌘W`) that goes straight to the editor panel, for
-apps where the bubble can't read the selection.
+A global shortcut (`⌥⌘W`) goes straight to the editor panel, for apps where the bubble
+can't read the selection. It can be turned off.
 
 **Inline is deliberately one thing.** Grammar is what a general-purpose model is
 reliable at. Tone and summarising need the adapters Apple keeps to itself, so they live
@@ -38,71 +38,64 @@ behind ✨ rather than being approximated badly — see
 
 Apple provides no way to inject Writing Tools into another app. Electron apps like
 Teams don't use `NSTextView`, so the system never offers Writing Tools there, and
-nothing can change that from the outside.
+nothing changes that from the outside.
 
-This app takes a different route: read the selection out of whatever app you're in,
-run it through Apple Intelligence, and write the result back.
-
-**The one-click actions vs. Apple's panel.** Apple exposes exactly one entry point —
-*open* the Writing Tools panel (`showWritingTools:`). There is no API to invoke a
-specific tool. So the five quick actions run on **FoundationModels**, the on-device
-model framework published in macOS 26 — the same local model Writing Tools uses —
-with prompts from this project. Everything stays on device; no network, no API key.
-
-For Apple's own prompts and interface, the sixth chip puts the text into a real
-`NSTextView`, which the system will happily attach Writing Tools to.
+This app takes a different route: read the selection out of whatever app you're in, run
+it through Apple Intelligence, and write the result back.
 
 **Reading the selection.** Global mouse-up and selection keystrokes are watched, then
 the selection is read through the Accessibility API. `⌘C` is never simulated here —
-hijacking the clipboard on every click would be unacceptable.
+hijacking the clipboard on every click would be unacceptable. Electron apps don't build
+an accessibility tree until something asks for one, so `AXManualAccessibility` is set on
+them first; that's what makes Teams, Slack, VS Code and Obsidian report a selection at
+all.
 
-Electron apps don't build an accessibility tree until something asks for one, so
-`AXManualAccessibility` is set on them first. That's what makes Teams, Slack, VS Code
-and Obsidian report their selection at all.
+**Writing it back.** Simulated paste by default, because that is the only thing that
+works reliably in Electron apps. The previous clipboard contents are restored
+afterwards.
 
 ## Requirements
 
-- macOS 26 or later (the quick actions need FoundationModels)
-- **Apple Intelligence turned on** — checked at launch, with a button that takes you
-  to the right settings pane if it isn't
+- macOS 26 or later
+- **Apple Intelligence turned on** — checked at launch, with a button that opens the
+  right settings pane if it isn't
 - Apple silicon
 - Command Line Tools only. **Xcode is not required.**
 
 ## Install
 
-### From a release
+Download the `.dmg` and drag the app to Applications. The disk image and the app are
+both signed with a Developer ID and notarised, so it opens with no warnings.
 
-Download the `.dmg` and drag the app to Applications. Both the disk image and the app
-are signed with a Developer ID and notarised by Apple, so it opens with no warnings and
-no terminal incantation.
+Or build it yourself:
+
+```bash
+./setup-signing.sh   # once
+./build.sh --run
+```
 
 On first launch it asks for **Accessibility** permission: System Settings → Privacy &
 Security → Accessibility → enable `WritingToolsAnywhere`, then relaunch.
 
-### From source
-
-```bash
-./setup-signing.sh   # once: creates a stable local signing identity
-./build.sh --run
-```
-
-On first launch it asks for **Accessibility** permission:
-System Settings → Privacy & Security → Accessibility → enable
-`WritingToolsAnywhere`, then relaunch.
-
-#### Why `setup-signing.sh` exists
+### Why `setup-signing.sh` exists
 
 macOS ties Accessibility permission to an app's **code signature**, not to its path or
 bundle ID.
 
-An ad-hoc signature is derived from the binary's contents, so **every rebuild produces
-a new identity** and silently invalidates the permission you already granted — while
-the System Settings toggle stays on. The result is the worst possible failure mode:
-it looks authorised, it isn't, and macOS never prompts again.
+An ad-hoc signature is derived from the binary's contents, so **every rebuild produces a
+new identity** and silently invalidates the permission you already granted — while the
+System Settings toggle stays on. That is the worst possible failure mode: it looks
+authorised, it isn't, and macOS never prompts again.
 
 `setup-signing.sh` creates a self-signed certificate in your login keychain so the
-signing identity stops changing. Grant Accessibility once and it survives rebuilds,
-and even moving the folder.
+signing identity stops changing. Grant Accessibility once and it survives rebuilds, and
+even moving the folder.
+
+If permissions do get into a bad state:
+
+```bash
+tccutil reset Accessibility com.linshan.WritingToolsAnywhere
+```
 
 ## Settings
 
@@ -114,10 +107,9 @@ Menu bar ✨ → **Settings…** (`⌘,`)
 | Status | Accessibility | Live check, with a jump to the settings pane |
 | General | Start at login | `SMAppService`, no helper bundle |
 | General | Bubble | Turn it off to use the shortcut only |
-| General | Shortcut | Turn the global shortcut on or off, and pick the combination. Applied immediately; turning it off hands the keys back to other apps |
+| General | Shortcut | Enable or disable it, and pick the combination. Turning it off hands the keys back to other apps |
 | Language | Interface | System / 简体中文 / English |
-| Language | My language | Translation runs between this and English, direction chosen automatically. Set it to English and everything non-English becomes English. |
-| Language | Download Languages… | Jumps to System Settings, where Apple's translation language packs are installed |
+| Language | My language | Translation runs between this and English. Set it to English and everything non-English becomes English |
 | Advanced | Auto-replace | Write back as soon as Writing Tools finishes |
 | Advanced | Replace using | Simulated paste (most compatible) or Accessibility |
 | Advanced | Clipboard | Restore the previous contents afterwards |
@@ -125,8 +117,8 @@ Menu bar ✨ → **Settings…** (`⌘,`)
 
 Proofreading always replies in the language you wrote in; the interface setting only
 affects the app's own UI. Translation uses Apple's built-in engine, so a language pair
-has to be downloaded in System Settings before it can be used — the bubble tells you
-which pair is missing if it isn't.
+must be downloaded in System Settings first — the bubble names the missing pair if it
+isn't.
 
 Settings live in `~/Library/Application Support/WritingToolsAnywhere/config.json`.
 
@@ -141,93 +133,9 @@ Settings live in `~/Library/Application Support/WritingToolsAnywhere/config.json
 | Editor | `⇧⌘C` | Copy the result |
 | Editor | `esc` | Cancel |
 
-## Building a release
-
-```bash
-./setup-notarize.sh           # once: check the Developer ID setup, store credentials
-./package.sh --notarize WTA   # build, sign, notarise, staple, produce dist/*.dmg
-```
-
-`./package.sh` on its own still works and skips notarisation.
-
-Signing is picked automatically: a `Developer ID Application` certificate if you have
-one (hardened runtime + secure timestamp, ready to notarise), otherwise ad-hoc with a
-printed warning. The local development certificate is deliberately never used for
-distribution — it's trusted only on the machine that created it.
-
-Notarising needs an Apple Developer account and a **Developer ID Application**
-certificate. `setup-notarize.sh` checks what's present and walks through the rest; the
-only thing to obtain by hand is the certificate itself:
-
-1. **Keychain Access → Certificate Assistant → Request a Certificate From a Certificate
-   Authority**, saved to disk. The private key stays in your keychain.
-2. [developer.apple.com/account/resources/certificates](https://developer.apple.com/account/resources/certificates)
-   → **+** → **Developer ID Application** → upload the request → download the `.cer`.
-3. Double-click the `.cer` to install it. This installs **only your own certificate** —
-   `codesign` also needs Apple's *Developer ID Certification Authority* intermediate in
-   the keychain, or signing fails with `unable to build chain to self-signed root`.
-   `setup-notarize.sh` detects that and installs it for you.
-
-   (`security verify-cert` fetches the intermediate over the network and reports success
-   even when it's missing locally, so it's a misleading way to check.)
-
-No Xcode is needed for any of this — `notarytool` and `stapler` ship with the Command
-Line Tools. The app signs cleanly under the hardened runtime that notarisation
-requires, and needs no entitlements: everything it uses is either a system framework or
-gated by TCC rather than by entitlement.
-
-An individual certificate carries your legal name, and it is visible to anyone who runs
-`codesign -dvv` on the app.
-
-### Moving to a new Mac
-
-A Developer ID certificate's private key exists only in the keychain that generated the
-request. Lose that keychain and the certificate is dead — and Apple allows five
-Developer ID Application certificates, which are awkward to revoke. iCloud Keychain
-does **not** sync certificates or identities.
-
-```bash
-./backup-signing.sh          # writes a .p12 to ~/Desktop
-```
-
-Keep the file in a password manager or on encrypted storage. On the new Mac, double-click
-it and enter the export password; `build.sh` and `package.sh` find the certificate on
-their own after that.
-
-The file *is* the signing identity — anyone holding it and its password can sign
-software in your name. Never commit it, email it, or put it in a shared drive.
-
-## Project layout
-
-| Path | Purpose |
-|---|---|
-| `Sources/AppDelegate.swift` | Menu bar, onboarding, coordination |
-| `Sources/SettingsWindow.swift` | Settings window |
-| `Sources/SelectionWatcher.swift` | Global selection detection and bubble placement |
-| `Sources/BubbleController.swift` | The bubble's non-activating panel |
-| `Sources/ActionMenuView.swift` | The expanded row of chips (custom-drawn) |
-| `Sources/PanelController.swift` | Editor panel and the `showWritingTools:` call |
-| `Sources/TextBridge.swift` | Cross-app selection reading, write-back, clipboard safety |
-| `Sources/LLM.swift` | FoundationModels wrapper, prompts, guided generation |
-| `Sources/Translator.swift` | Translation.framework wrapper and language detection |
-| `Sources/HotKey.swift` | Carbon global hotkey (needs no extra permission) |
-| `Sources/LoginItem.swift` | Start at login |
-| `Sources/L10n.swift` | English / Chinese interface |
-| `Sources/MenuBarIcon.swift` | Menu bar glyph, drawn in code |
-| `tools/MakeIcon/main.swift` | App icon, drawn with Core Graphics at every size |
-
-| Script | Purpose |
-|---|---|
-| `setup-signing.sh` | Create the stable local signing identity (development) |
-| `setup-notarize.sh` | Check the Developer ID setup, install Apple's intermediate, store credentials |
-| `backup-signing.sh` | Export the signing identity for a new Mac |
-| `build.sh` | Compile and assemble the .app |
-| `package.sh` | Build, sign, notarise, produce the .dmg |
-| `make-icon.sh` | Regenerate the app icon |
-
 ## Quality ceiling: why inline can't match Apple
 
-The two paths in this app run on **different engines**, and that difference is the
+The three paths in this app run on **different engines**, and that difference is the
 whole story:
 
 | | Engine | Quality |
@@ -236,15 +144,15 @@ whole story:
 | **Translate** | `Translation.framework` — Apple's dedicated translation engine, the same one the Translate app and Safari use | Apple's own quality |
 | **More** (✨) | `showWritingTools:` — **Apple's real Writing Tools**, with its task-trained LoRA adapters | Apple's own quality |
 
-**Apple's Writing Tools does not prompt a general model.** It loads **task-specific
-LoRA adapters** — one trained for proofreading, one for summarising, one per tone — and
-swaps them in at runtime. It then delivers results as **`(range, replacement)` pairs**
-through `NSWritingToolsCoordinator`, editing the app's existing text storage rather
-than returning a blob of prose.
+**Apple's Writing Tools does not prompt a general model.** It loads **task-specific LoRA
+adapters** — one trained for proofreading, one for summarising, one per tone — and swaps
+them in at runtime. It then delivers results as **`(range, replacement)` pairs** through
+`NSWritingToolsCoordinator`, editing the app's existing text storage rather than
+returning a blob of prose. A preamble has nowhere to go.
 
 **Neither is reachable from the public API.** FoundationModels hands you the
-general-purpose ~3B base model and a whole-string response. Apple's shipped adapters
-are private system assets; `SystemLanguageModel.Adapter(name:)` loads adapters *you*
+general-purpose ~3B base model and a whole-string response. Apple's shipped adapters are
+private system assets; `SystemLanguageModel.Adapter(name:)` loads adapters *you*
 provide, not Apple's.
 
 So inline editing is prompt engineering against a general model, and it has a ceiling.
@@ -262,11 +170,9 @@ chat messages:
 | Something shorter | Returns the document unchanged about half the time. Tightening the prompt makes it *worse* — given "the result MUST be clearly shorter" plus a character budget, the model stops editing and copies its input. |
 | A translation | **Fabricates.** "明天" (tomorrow) comes back as "Wednesday"; an untranslated "someone" is left sitting in a Chinese sentence. |
 
-That last one is why Translate uses `Translation.framework` instead.
-Apple's translator makes ordinary word-choice mistakes rather than confident
-inventions — a very different kind of wrong to paste into someone's message.
-
-The rest is why Proofread is the only thing done inline, and why ✨ exists.
+That last one is why Translate uses `Translation.framework` instead. Apple's translator
+makes ordinary word-choice mistakes rather than confident inventions — a very different
+kind of wrong to paste into someone's message.
 
 ### What keeps proofreading honest
 
@@ -276,32 +182,67 @@ The rest is why Proofread is the only thing done inline, and why ✨ exists.
    compiler plugin ships only with Xcode.
 2. **A fenced document.** The text is wrapped in `⟪⟪⟪ … ⟫⟫⟫`. Without it the model
    answers short or question-shaped input instead of editing it — `ok` produces an
-   invented paragraph, and text reading "ignore your instructions" is obeyed. The
-   model echoes fragments of the fence back, so the fence characters are trimmed as a
+   invented paragraph, and text reading "ignore your instructions" is obeyed. The model
+   echoes fragments of the fence back, so the fence characters are trimmed as a
    character set rather than matched as whole markers.
-3. **A plausibility ceiling.** A result more than ~1.6× the input is a continuation,
-   not a correction, and is discarded rather than pasted.
+3. **A plausibility ceiling.** A result more than ~1.6× the input is a continuation, not
+   a correction, and is discarded rather than pasted.
 
-When the result comes back identical to the input, the bubble says so instead of
-pasting your own words back over themselves.
+When the result comes back identical to the input, the bubble says so instead of pasting
+your own words back over themselves.
 
 ### Could we train our own adapter?
 
-Technically yes. `SystemLanguageModel.Adapter` is public, and Apple ships a Python
-toolkit for training rank-32 LoRA adapters (Apple silicon with ≥32 GB, or a Linux GPU
-box). Two reasons it isn't worth it here:
+Technically yes — `SystemLanguageModel.Adapter` is public and Apple ships a training
+toolkit. Two reasons it isn't worth it:
 
-- **Adapters are locked to a base model version** — one adapter per system model
-  version, no exceptions. A macOS update can break it, and the app then fails for
-  everyone until it's retrained and reshipped.
-- **It wouldn't close the real gap.** The difference isn't only the model, it's the
-  transport: Apple edits ranges in place, we replace a whole selection. An adapter
-  doesn't change that.
+- **Adapters are locked to a base model version** — one per system model version, no
+  exceptions. A macOS update can break it, and the app then fails for everyone until
+  it's retrained and reshipped.
+- **It wouldn't close the real gap**, which is the transport: Apple edits ranges in
+  place, we replace a whole selection.
 
-**The honest division of labour: inline is the convenience path, ✨ is the quality
-path.** It puts your text into a real `NSTextView` and calls `showWritingTools:`, so
-you get Apple's own adapters, prompts, and accept/reject UI — in an app that was never
-going to offer them.
+**Inline is the convenience path, ✨ is the quality path.** It puts your text into a real
+`NSTextView` and calls `showWritingTools:`, so you get Apple's own adapters, prompts and
+accept/reject UI — in an app that was never going to offer them.
+
+## Building a release
+
+```bash
+./package.sh                  # dist/*.dmg
+./package.sh --notarize WTA   # also notarise and staple
+```
+
+Signing is picked automatically: a `Developer ID Application` certificate if you have
+one, otherwise ad-hoc with a printed warning. Both the app and the disk image are
+signed, notarised and stapled, and the script asserts the result the way Gatekeeper
+will see it — a broken signature fails here rather than on someone else's Mac.
+
+`setup-notarize.sh` checks the Developer ID setup, installs Apple's intermediate
+certificate if it's missing, and stores notarisation credentials. `backup-signing.sh`
+exports the signing identity, which lives only in the keychain that created it.
+
+## Project layout
+
+| Path | Purpose |
+|---|---|
+| `Sources/AppDelegate.swift` | Menu bar, onboarding, coordination |
+| `Sources/SettingsWindow.swift` | Settings window |
+| `Sources/SelectionWatcher.swift` | Global selection detection and bubble placement |
+| `Sources/BubbleController.swift` | The bubble's non-activating panel |
+| `Sources/ActionMenuView.swift` | The expanded row of chips (custom-drawn) |
+| `Sources/PanelController.swift` | Editor panel and the `showWritingTools:` call |
+| `Sources/TextBridge.swift` | Cross-app selection reading, write-back, clipboard safety |
+| `Sources/LLM.swift` | FoundationModels wrapper, prompts, guided generation |
+| `Sources/Translator.swift` | Translation.framework wrapper and language detection |
+| `Sources/HotKey.swift` | Carbon global hotkey (needs no extra permission) |
+| `Sources/MenuBarIcon.swift` | Menu bar glyph, drawn in code |
+| `tools/MakeIcon/main.swift` | App icon, drawn with Core Graphics at every size |
+
+`build.sh` compiles and assembles the `.app`; `make-icon.sh` regenerates the icon.
+
+Menu bar ✨ → Settings → Advanced → **Copy Diagnostics** dumps permission and model
+state. Turning on the debug log writes to `~/Library/Logs/WritingToolsAnywhere.log`.
 
 ## Known limitations
 
@@ -315,11 +256,9 @@ going to offer them.
   managers may record that one entry.
 - Accessibility permission means the app can't be sandboxed, so it can't ship on the
   Mac App Store.
-- The bubble depends on apps reporting their selection over the Accessibility API.
-  Most native and Electron apps do; a few (some Java apps, games, custom text engines,
-  remote desktops) don't. Use `⌥⌘W` there — it falls back to `⌘C`.
-- Bubble placement prefers the selection's screen rectangle; some apps return `0×0`,
-  in which case it falls back to the pointer position.
+- The bubble depends on apps reporting their selection over the Accessibility API. Most
+  native and Electron apps do; a few (some Java apps, games, custom text engines, remote
+  desktops) don't. Use `⌥⌘W` there — it falls back to `⌘C`.
 - Detecting selections requires a global keyboard and mouse event monitor. Nothing is
   recorded, stored or transmitted unless you deliberately enable the debug log.
 
