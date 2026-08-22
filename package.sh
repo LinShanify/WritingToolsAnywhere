@@ -83,6 +83,26 @@ rm -f "$DMG"
 hdiutil create -volname "$APP_NAME" -srcfolder "$STAGE" \
     -ov -format UDZO -quiet "$DMG"
 
+# The app inside is notarised, but to Gatekeeper the disk image carrying it is a
+# separate piece of code — left unsigned it assesses as "no usable signature". Sign and
+# notarise the container too, so the thing being downloaded is clean, not just its
+# contents.
+if [ "$SIGNED_PROPERLY" = "1" ]; then
+    echo "→ signing the disk image"
+    codesign --force --timestamp --sign "$DEV_ID" "$DMG"
+
+    if [ -n "$NOTARY_PROFILE" ]; then
+        echo "→ notarising the disk image"
+        xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
+        xcrun stapler staple "$DMG"
+
+        echo "→ verifying the download the way a stranger's Mac will see it"
+        xcrun stapler validate "$DMG"
+        spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
+        echo "✓ the disk image itself passes Gatekeeper"
+    fi
+fi
+
 echo
 echo "✓ $DMG  ($(du -h "$DMG" | cut -f1))"
 echo "  sha256: $(shasum -a 256 "$DMG" | cut -d' ' -f1)"

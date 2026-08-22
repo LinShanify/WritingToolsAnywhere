@@ -72,12 +72,12 @@ and Obsidian report their selection at all.
 
 ### From a release
 
-Download the `.dmg`, drag the app to Applications, then — because the app isn't
-notarised yet — clear the quarantine flag:
+Download the `.dmg` and drag the app to Applications. Both the disk image and the app
+are signed with a Developer ID and notarised by Apple, so it opens with no warnings and
+no terminal incantation.
 
-```bash
-xattr -dr com.apple.quarantine /Applications/WritingToolsAnywhere.app
-```
+On first launch it asks for **Accessibility** permission: System Settings → Privacy &
+Security → Accessibility → enable `WritingToolsAnywhere`, then relaunch.
 
 ### From source
 
