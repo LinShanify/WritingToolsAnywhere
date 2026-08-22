@@ -27,16 +27,27 @@ three things:
 - **Proofread** — fixes grammar, spelling and awkward phrasing, then replaces the text
   in place. It keeps your voice and length; it does not make you sound corporate.
 - **Translate** — between your language and English, direction chosen automatically.
+  Uses Apple's translation engine, not a language model.
 - **More** — opens an editor panel and brings up **Apple's own Writing Tools**, with
   every tone and summary option Apple ships.
 
+> [!IMPORTANT]
+> **Proofread is not Apple's Writing Tools, and doesn't match it.**
+>
+> It runs on `FoundationModels`, Apple's **general-purpose** on-device base model, driven
+> by prompts from this project. Apple's Writing Tools runs **task-trained LoRA adapters**
+> that the public API doesn't expose — a different model for proofreading, for each tone,
+> for summarising — and edits your text by ranges rather than replacing it wholesale.
+>
+> So expect Proofread to fix grammar well and go no further. It has no tone options and
+> no summarising, because a general model does those badly enough to be worse than not
+> offering them. Chinese is weaker than English. **For Apple's own quality, use ✨** —
+> that hands the text to the real thing.
+>
+> The measurements behind all of this: [Quality ceiling](#quality-ceiling-why-inline-cant-match-apple).
+
 A global shortcut (`⌥⌘W`) goes straight to the editor panel, for apps where the bubble
 can't read the selection. It can be turned off.
-
-**Inline is deliberately one thing.** Grammar is what a general-purpose model is
-reliable at. Tone and summarising need the adapters Apple keeps to itself, so they live
-behind ✨ rather than being approximated badly — see
-[Quality ceiling](#quality-ceiling-why-inline-cant-match-apple).
 
 ## How it works
 
