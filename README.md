@@ -173,6 +173,24 @@ gated by TCC rather than by entitlement.
 An individual certificate carries your legal name, and it is visible to anyone who runs
 `codesign -dvv` on the app.
 
+### Moving to a new Mac
+
+A Developer ID certificate's private key exists only in the keychain that generated the
+request. Lose that keychain and the certificate is dead — and Apple allows five
+Developer ID Application certificates, which are awkward to revoke. iCloud Keychain
+does **not** sync certificates or identities.
+
+```bash
+./backup-signing.sh          # writes a .p12 to ~/Desktop
+```
+
+Keep the file in a password manager or on encrypted storage. On the new Mac, double-click
+it and enter the export password; `build.sh` and `package.sh` find the certificate on
+their own after that.
+
+The file *is* the signing identity — anyone holding it and its password can sign
+software in your name. Never commit it, email it, or put it in a shared drive.
+
 ## Project layout
 
 | Path | Purpose |
