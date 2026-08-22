@@ -143,6 +143,61 @@ tccutil reset Accessibility com.linshan.WritingToolsAnywhere
 | 面板内 | `⇧⌘C` | 复制结果 |
 | 面板内 | `esc` | 取消 |
 
+## 打包发布
+
+```bash
+./setup-notarize.sh           # 只需一次：检查 Developer ID 配置、存好公证凭据
+./package.sh --notarize WTA   # 构建、签名、公证、装订，产出 dist/*.dmg
+```
+
+单独跑 `./package.sh` 依然可用，只是跳过公证。
+
+签名身份自动挑选：有 `Developer ID Application` 证书就用它（并开启 hardened runtime
+和安全时间戳，这是公证的前提），否则退回 ad-hoc 并打印警告。
+本地那张开发证书**刻意不用于分发**——它只在生成它的那台机器上被信任。
+
+### 拿到 Developer ID 证书
+
+公证需要 Apple Developer 账号和一张 **Developer ID Application** 证书。
+`setup-notarize.sh` 会检查现有配置并引导剩下的步骤，唯一需要手工办的是证书本身：
+
+1. **钥匙串访问 → 证书助理 → 从证书颁发机构请求证书…**，存储到磁盘。
+   私钥会留在你的钥匙串里。
+   （macOS 26 上钥匙串访问不在「实用工具」里了，用 Spotlight 搜，或
+   `open "/System/Library/CoreServices/Applications/Keychain Access.app"`）
+2. [developer.apple.com/account/resources/certificates](https://developer.apple.com/account/resources/certificates)
+   → **+** → **Developer ID Application** → Profile Type 选 **G2 Sub-CA**
+   （选 Previous Sub-CA 的话证书 2027 年 2 月就过期）→ 上传请求文件 → 下载 `.cer`。
+3. 双击 `.cer` 安装。这**只装了你自己那张证书**——`codesign` 还需要 Apple 的
+   *Developer ID Certification Authority* 中间证书在钥匙串里，否则签名会报
+   `unable to build chain to self-signed root`。`setup-notarize.sh` 会检测并自动补上。
+
+   （`security verify-cert` 会联网抓中间证书，即使本地缺失也报成功，
+   所以别拿它做判断依据。）
+
+全程不需要 Xcode —— `notarytool` 和 `stapler` 都随命令行工具提供。
+本 App 在公证所要求的 hardened runtime 下签名和运行都正常，且不需要任何 entitlement：
+用到的要么是系统框架，要么是由 TCC 而非 entitlement 管控的能力。
+
+个人证书里带的是你的**法定姓名**，任何人对 App 跑 `codesign -dvv` 都能看到。
+
+### 换电脑怎么办
+
+Developer ID 证书的私钥**只存在于生成请求的那个钥匙串里**。钥匙串没了，证书就废了
+——而 Apple 只给 5 张 Developer ID Application 额度，撤销起来还很麻烦。
+iCloud 钥匙串**不会**同步证书和身份（钥匙串条目只有被显式标记
+`kSecAttrSynchronizable` 才同步，证书助理生成的不带这个标记）。
+
+```bash
+./backup-signing.sh          # 导出一个 .p12 到桌面
+```
+
+把文件放进密码管理器或加密存储。换机器时双击它、输入导出密码即可，
+之后 `build.sh` 和 `package.sh` 会自动找到证书。
+
+这个文件**就是签名身份本身**——任何拿到它和密码的人都能以你的名义签名软件。
+不要提交进仓库、不要用邮件发送、不要放进共享网盘。
+
 ## 源码结构
 
 | 文件 | 作用 |
@@ -164,6 +219,15 @@ tccutil reset Accessibility com.linshan.WritingToolsAnywhere
 | `Sources/Prefs.swift` | JSON 配置 |
 | `Sources/Log.swift` | 调试日志（默认关闭） |
 | `tools/MakeIcon/main.swift` | 应用图标（Core Graphics 矢量绘制，十个尺寸各自渲染） |
+
+| 脚本 | 作用 |
+|---|---|
+| `setup-signing.sh` | 建立本地固定签名身份（开发用） |
+| `setup-notarize.sh` | 检查 Developer ID 配置、补中间证书、存公证凭据 |
+| `backup-signing.sh` | 导出签名身份，换机器用 |
+| `build.sh` | 编译并打包 .app |
+| `package.sh` | 构建、签名、公证、产出 .dmg |
+| `make-icon.sh` | 重新生成应用图标 |
 
 ## 排查
 
@@ -246,7 +310,7 @@ Python 工具包（Apple silicon + ≥32GB 内存，或 Linux GPU 机器）。�
 于是你拿到的是 Apple 自己的适配器、prompt 和逐条接受/拒绝的界面——
 在一个本来永远不会提供这些的 App 里。
 
-## 已知限制## 已知限制## 已知限制
+## 已知限制
 
 - 翻译需要先安装 Apple 的语言包（系统设置 → 通用 → 语言与地区 → 翻译语言）。
   缺哪一对会直接报出来。
@@ -261,3 +325,7 @@ Python 工具包（Apple silicon + ≥32GB 内存，或 Linux GPU 机器）。�
 - 悬浮球定位：优先用选区的屏幕矩形；部分应用返回 `0×0`，此时退回鼠标位置。
 - 为了检测选区，App 注册了全局键鼠事件监听（这也是辅助功能权限的用途之一）。
   监听内容不做任何记录、存储或上传，除非你手动打开「记录调试日志」。
+
+## 许可证
+
+MIT

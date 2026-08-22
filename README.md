@@ -216,6 +216,15 @@ software in your name. Never commit it, email it, or put it in a shared drive.
 | `Sources/MenuBarIcon.swift` | Menu bar glyph, drawn in code |
 | `tools/MakeIcon/main.swift` | App icon, drawn with Core Graphics at every size |
 
+| Script | Purpose |
+|---|---|
+| `setup-signing.sh` | Create the stable local signing identity (development) |
+| `setup-notarize.sh` | Check the Developer ID setup, install Apple's intermediate, store credentials |
+| `backup-signing.sh` | Export the signing identity for a new Mac |
+| `build.sh` | Compile and assemble the .app |
+| `package.sh` | Build, sign, notarise, produce the .dmg |
+| `make-icon.sh` | Regenerate the app icon |
+
 ## Quality ceiling: why inline can't match Apple
 
 The two paths in this app run on **different engines**, and that difference is the
@@ -294,7 +303,7 @@ path.** It puts your text into a real `NSTextView` and calls `showWritingTools:`
 you get Apple's own adapters, prompts, and accept/reject UI — in an app that was never
 going to offer them.
 
-## Known limitations## Known limitations## Known limitations
+## Known limitations
 
 - Translation needs Apple's language packs installed (System Settings → General →
   Language & Region → Translation Languages). Missing pairs are reported by name.
