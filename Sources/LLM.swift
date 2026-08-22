@@ -149,6 +149,44 @@ enum LLM {
         return unified.split(separator: "\n", omittingEmptySubsequences: false)
     }
 
+    /// Re-attaches each line's original list marker when the reply dropped it.
+    private static func restoreListMarkers(from before: [Substring],
+                                           to after: [Substring]) -> String {
+        guard before.count == after.count else { return after.joined(separator: "\n") }
+
+        var lines: [String] = []
+        for (original, edited) in zip(before, after) {
+            guard hasListMarker(original), !hasListMarker(edited) else {
+                lines.append(String(edited))
+                continue
+            }
+            let indent = original.prefix { $0 == " " || $0 == "\t" }
+            let rest = original.dropFirst(indent.count)
+            let marker: Substring
+            if let first = rest.first, "-*•‣·".contains(first) {
+                marker = rest.prefix(2)                       // e.g. "- "
+            } else {
+                let digits = rest.prefix(while: \.isNumber)
+                marker = rest.prefix(digits.count + 2)        // e.g. "1. "
+            }
+            let body = edited.drop { $0 == " " }
+            lines.append(String(indent) + String(marker) + String(body))
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    /// Which line separators the text actually uses, for diagnosing rejections.
+    private static func separatorsPresent(_ text: String) -> String {
+        var found: [String] = []
+        if text.contains("\r\n") { found.append("CRLF") }
+        else if text.contains("\r") { found.append("CR") }
+        if text.contains("\n") { found.append("LF") }
+        if text.contains("\u{2028}") { found.append("U2028") }
+        if text.contains("\u{2029}") { found.append("U2029") }
+        if text.contains("\u{00A0}") { found.append("NBSP") }
+        return found.isEmpty ? "none" : found.joined(separator: "+")
+    }
+
     /// A bullet, dash or "1." at the start of a line, ignoring indentation.
     private static func hasListMarker(_ line: Substring) -> Bool {
         let trimmed = line.drop { $0 == " " || $0 == "\t" }
@@ -162,13 +200,23 @@ enum LLM {
         return afterDigits.first == "." || afterDigits.first == ")"
     }
 
-    /// Below 0.6 confidence the guess is worthless — short strings score as Polish or
-    /// Turkish — so no language is named rather than naming the wrong one.
+    /// Naming the language is a strong instruction, and a strong instruction built on a
+    /// wrong guess is worse than none: a two-item English checklist scored Turkish at
+    /// 0.71, the model was duly told to reply in Turkish, and it did. Detection is only
+    /// trusted when it is nearly certain and has enough text to be certain about;
+    /// otherwise the generic "keep the document's language" wording is used, which is
+    /// weaker but cannot itself cause a translation.
+    ///
+    /// The failure this guards against — Chinese silently becoming English — happened on
+    /// full sentences, which score at or near 1.00, so the stricter bar keeps it covered.
     private static func detectLanguage(_ text: String) -> NLLanguage? {
+        let stripped = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard stripped.count >= 20 else { return nil }
+
         let recognizer = NLLanguageRecognizer()
-        recognizer.processString(text)
+        recognizer.processString(stripped)
         guard let best = recognizer.languageHypotheses(withMaximum: 5)
-            .max(by: { $0.value < $1.value }), best.value >= 0.6 else { return nil }
+            .max(by: { $0.value < $1.value }), best.value >= 0.9 else { return nil }
         return best.key
     }
 
@@ -249,19 +297,29 @@ enum LLM {
         // chat app usually carries exactly that, which rejected almost every edit.
         let before = lines(of: text)
         let after = lines(of: result)
+
+        // Shape only — never the text itself. Enough to tell a separator problem from the
+        // model genuinely restructuring, without putting what someone selected on disk.
+        let shape = "in \(before.count)L/\(before.filter(hasListMarker).count)M "
+                  + "out \(after.count)L/\(after.filter(hasListMarker).count)M "
+                  + "sep[\(separatorsPresent(text))]"
+
         if before.count != after.count {
-            Log.write("llm: discarded result, \(before.count) lines became \(after.count)")
+            Log.write("llm: reshaped — \(shape)")
             throw LLMError.structureChanged
         }
 
-        // Line count alone is not enough: a three-item list came back as three lines with
-        // every "- " stripped and commas bolted on. Bullets are part of the shape too.
-        let markersBefore = before.filter(hasListMarker).count
-        let markersAfter = after.filter(hasListMarker).count
-        if markersBefore > markersAfter {
-            Log.write("llm: discarded result, \(markersBefore) list markers became \(markersAfter)")
-            throw LLMError.structureChanged
+        // Stripping the bullets is what the model does most of the time — five runs in
+        // six on a three-item list. Rejecting all of those would make lists unusable, and
+        // it isn't necessary: the marker each line started with is known exactly, so
+        // putting it back is restoration rather than a guess. Only a change in the number
+        // of lines is unrecoverable, and that is already handled above.
+        let repaired = restoreListMarkers(from: before, to: after)
+        if repaired != result {
+            Log.write("llm: markers restored — \(shape)")
+            return repaired
         }
+        Log.write("llm: ok — \(shape)")
         return result
     }
 
