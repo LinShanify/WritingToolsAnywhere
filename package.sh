@@ -65,6 +65,13 @@ if [ -n "$NOTARY_PROFILE" ]; then
     xcrun notarytool submit "$ZIP" --keychain-profile "$NOTARY_PROFILE" --wait
     xcrun stapler staple "$BUNDLE"
     echo "✓ notarised and stapled"
+
+    # The point of notarising is that the app opens on a machine that has never seen it.
+    # Assert that rather than assuming it.
+    echo "→ verifying the way Gatekeeper will see it"
+    xcrun stapler validate "$BUNDLE"
+    spctl --assess --type execute --verbose=2 "$BUNDLE"
+    echo "✓ passes Gatekeeper"
 fi
 
 echo "→ building dmg"
