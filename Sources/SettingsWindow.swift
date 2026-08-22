@@ -121,7 +121,17 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         }
         grid.addRow(with: [label(L("悬浮球", "Bubble")), bubble])
 
-        grid.addRow(with: [label(L("快捷键", "Shortcut")), hotKeyEditor()])
+        let editor = hotKeyEditor()
+        let enable = checkbox(L("启用全局快捷键", "Enable the global shortcut"),
+                              prefs.hotkeyEnabled) { [weak self] on in
+            self?.mutate { $0.hotkeyEnabled = on }
+            Self.setEnabled(editor, on)
+        }
+        Self.setEnabled(editor, prefs.hotkeyEnabled)
+        grid.addRow(with: [label(L("快捷键", "Shortcut")), enable])
+        grid.addRow(with: [spacer(), editor])
+        hint(grid, L("关掉之后只保留悬浮球，这组按键会还给其他应用。",
+                     "With this off only the bubble remains, and the keys go back to other apps."))
     }
 
     private func buildLanguage(_ grid: NSGridView) {
@@ -230,6 +240,15 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         field.textColor = .tertiaryLabelColor
         field.preferredMaxLayoutWidth = 340
         grid.addRow(with: [spacer(), field])
+    }
+
+    /// NSStackView keeps its arranged views in `subviews`, so this greys out the whole
+    /// key editor in one call.
+    private static func setEnabled(_ view: NSView, _ enabled: Bool) {
+        for sub in view.subviews {
+            (sub as? NSControl)?.isEnabled = enabled
+            setEnabled(sub, enabled)
+        }
     }
 
     private func label(_ text: String) -> NSView {

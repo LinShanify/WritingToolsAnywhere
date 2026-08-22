@@ -114,7 +114,7 @@ Menu bar ✨ → **Settings…** (`⌘,`)
 | Status | Accessibility | Live check, with a jump to the settings pane |
 | General | Start at login | `SMAppService`, no helper bundle |
 | General | Bubble | Turn it off to use the shortcut only |
-| General | Shortcut | Modifier checkboxes + key menu, applied immediately |
+| General | Shortcut | Turn the global shortcut on or off, and pick the combination. Applied immediately; turning it off hands the keys back to other apps |
 | Language | Interface | System / 简体中文 / English |
 | Language | My language | Translation runs between this and English, direction chosen automatically. Set it to English and everything non-English becomes English. |
 | Language | Download Languages… | Jumps to System Settings, where Apple's translation language packs are installed |

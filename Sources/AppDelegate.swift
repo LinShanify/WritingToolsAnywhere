@@ -40,7 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         hotKeys = HotKeyManager { [weak self] in self?.trigger() }
-        _ = hotKeys.register(prefs.hotkey)
+        if prefs.hotkeyEnabled { _ = hotKeys.register(prefs.hotkey) }
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.image = MenuBarIcon.image()
@@ -92,6 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func applyPrefs(_ updated: Prefs) {
         let languageChanged = updated.uiLanguage != prefs.uiLanguage
         let hotkeyChanged = updated.hotkey.display != prefs.hotkey.display
+            || updated.hotkeyEnabled != prefs.hotkeyEnabled
         prefs = updated
 
         L10n.apply(prefs.uiLanguage)
@@ -100,10 +101,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         watcher.isEnabled = prefs.bubbleEnabled
         if !prefs.bubbleEnabled { bubble.hide() }
 
-        if hotkeyChanged, !hotKeys.register(prefs.hotkey) {
-            warn(L("快捷键无法注册", "Couldn't register that shortcut"),
-                 L("\(prefs.hotkey.display) 已被其他应用占用，换一个组合试试。",
-                   "\(prefs.hotkey.display) is already taken by another app. Try another combination."))
+        if hotkeyChanged {
+            if !prefs.hotkeyEnabled {
+                hotKeys.unregister()
+            } else if !hotKeys.register(prefs.hotkey) {
+                warn(L("快捷键无法注册", "Couldn't register that shortcut"),
+                     L("\(prefs.hotkey.display) 已被其他应用占用，换一个组合试试。",
+                       "\(prefs.hotkey.display) is already taken by another app. Try another combination."))
+            }
         }
         if languageChanged { rebuildMenu() }
     }

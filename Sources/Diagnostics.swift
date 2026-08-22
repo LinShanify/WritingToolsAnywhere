@@ -12,7 +12,7 @@ enum Diagnostics {
                 + (LLM.isAvailable ? "available" : LLM.unavailableReason),
             L("开机启动：", "Login item: ") + (LoginItem.isEnabled ? "on" : "off"),
             L("悬浮球：", "Bubble: ") + (prefs.bubbleEnabled ? "on" : "off"),
-            L("快捷键：", "Shortcut: ") + prefs.hotkey.display,
+            L("快捷键：", "Shortcut: ") + (prefs.hotkeyEnabled ? prefs.hotkey.display : "off"),
             L("我的语言：", "My language: ") + prefs.primaryLanguage,
             L("替换方式：", "Write-back: ") + prefs.writeBackMode.rawValue,
             L("屏幕数：", "Screens: ") + String(NSScreen.screens.count),

@@ -42,6 +42,7 @@ enum WriteBackMode: String, Codable, CaseIterable {
 
 struct Prefs: Codable {
     var hotkey = HotKeySpec()
+    var hotkeyEnabled = true
     var bubbleEnabled = true
     var autoApply = false
     var uiLanguage = UILanguage.system
@@ -55,7 +56,7 @@ struct Prefs: Codable {
     var debugLogging = false
 
     enum K: String, CodingKey {
-        case hotkey, bubbleEnabled, autoApply, uiLanguage, primaryLanguage
+        case hotkey, hotkeyEnabled, bubbleEnabled, autoApply, uiLanguage, primaryLanguage
         case writeBackMode, restoreClipboard, captureViaAX, debugLogging
     }
 
@@ -64,6 +65,7 @@ struct Prefs: Codable {
     init(from d: Decoder) throws {
         let c = try d.container(keyedBy: K.self)
         hotkey = try c.decodeIfPresent(HotKeySpec.self, forKey: .hotkey) ?? HotKeySpec()
+        hotkeyEnabled = try c.decodeIfPresent(Bool.self, forKey: .hotkeyEnabled) ?? true
         bubbleEnabled = try c.decodeIfPresent(Bool.self, forKey: .bubbleEnabled) ?? true
         autoApply = try c.decodeIfPresent(Bool.self, forKey: .autoApply) ?? false
         uiLanguage = try c.decodeIfPresent(UILanguage.self, forKey: .uiLanguage) ?? .system
