@@ -205,21 +205,15 @@ tccutil reset Accessibility com.linshan.WritingToolsAnywhere
 ## 打包发布
 
 ```bash
-./package.sh                  # 产出 dist/*.dmg
-./package.sh --notarize WTA   # 额外做公证与装订
+./package.sh                        # 产出 dist/*.dmg
+./package.sh --notarize <配置名>     # 额外做公证与装订
 ```
 
-签名身份自动挑选：有 `Developer ID Application` 证书就用它，否则退回 ad-hoc 并打印
-警告。App 和磁盘映像**都会**签名、公证、装订，脚本随后按 Gatekeeper 的视角断言结果
+有 `Developer ID Application` 证书就用它签名，否则退回 ad-hoc 并打印警告。
+App 和磁盘映像**都会**签名并装订，脚本随后按 Gatekeeper 的视角复核结果
 —— 签名有问题会在这里失败，而不是在别人的 Mac 上失败。
 
-公证需要一个 `notarytool` 钥匙串配置，建一次即可 ——
-
-```bash
-xcrun notarytool store-credentials <名称> --apple-id 你的邮箱 --team-id TEAMID
-```
-
-—— 然后把这个名称传给 `--notarize`。
+`<配置名>` 是一个 `notarytool` 钥匙串配置，用 `xcrun notarytool store-credentials` 建一次即可。
 
 ## 源码结构
 

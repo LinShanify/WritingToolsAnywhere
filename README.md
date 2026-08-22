@@ -232,22 +232,17 @@ accept/reject UI — in an app that was never going to offer them.
 ## Building a release
 
 ```bash
-./package.sh                  # dist/*.dmg
-./package.sh --notarize WTA   # also notarise and staple
+./package.sh                        # dist/*.dmg
+./package.sh --notarize <profile>   # also notarise and staple
 ```
 
-Signing is picked automatically: a `Developer ID Application` certificate if you have
-one, otherwise ad-hoc with a printed warning. Both the app and the disk image are
-signed, notarised and stapled, and the script asserts the result the way Gatekeeper
-will see it — a broken signature fails here rather than on someone else's Mac.
+Signing uses a `Developer ID Application` certificate if you have one, otherwise ad-hoc
+with a warning. The app and the disk image are both signed and stapled, and the script
+then checks the result the way Gatekeeper will — a broken signature fails here rather
+than on someone else's Mac.
 
-Notarising needs a `notarytool` keychain profile. Create one once —
-
-```bash
-xcrun notarytool store-credentials <name> --apple-id you@example.com --team-id TEAMID
-```
-
-— then pass that name to `--notarize`.
+`<profile>` is a `notarytool` keychain profile, created once with
+`xcrun notarytool store-credentials`.
 
 ## Project layout
 
