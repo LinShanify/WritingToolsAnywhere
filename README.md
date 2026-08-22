@@ -5,6 +5,10 @@
 Apple Intelligence rewriting in **any** macOS app — including the ones Apple's own
 Writing Tools never appears in, like Microsoft Teams, Slack and VS Code.
 
+### **[⬇ Download the latest release](https://github.com/LinShanify/WritingToolsAnywhere/releases/latest)**
+
+macOS 26+ · Apple silicon · signed and notarised, so it opens with no warnings
+
 [中文说明](README.zh-CN.md)
 
 ---

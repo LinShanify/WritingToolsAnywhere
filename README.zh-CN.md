@@ -5,6 +5,10 @@
 在**任何** macOS 应用里调用 Apple Intelligence 改写文字 —— 包括 Microsoft Teams、
 Slack、VS Code 这些系统原本不会出现 Writing Tools 的应用。
 
+### **[⬇ 下载最新版本](https://github.com/LinShanify/WritingToolsAnywhere/releases/latest)**
+
+macOS 26+ · Apple silicon · 已签名并公证，双击直接打开，没有任何警告
+
 [English](README.md)
 
 ---
