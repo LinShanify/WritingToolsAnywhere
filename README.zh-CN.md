@@ -111,14 +111,12 @@ tccutil reset Accessibility com.linshan.WritingToolsAnywhere
 | 通用 | 悬浮球 | 关掉之后只保留快捷键 |
 | 通用 | 快捷键 | 修饰键勾选 + 主键下拉，改完立即生效 |
 | 语言 | 界面语言 | 跟随系统 / 简体中文 / English |
-| 语言 | 改写输出语言 | 跟随原文 / 中文 / English / 日本語 / 한국어 / Français / Deutsch / Español |
 | 高级 | 自动替换 | 写作工具面板结束后自动写回，省掉 `⌘↩` |
 | 高级 | 替换方式 | 模拟粘贴（兼容性最好）/ 辅助功能直接写入 |
 | 高级 | 剪贴板 | 用完后恢复原有内容 |
 | 高级 | 调试日志 | **默认关闭**；打开后会把你选中的文字写入本地日志 |
 
-「改写输出语言」和界面语言是两回事：前者决定改写结果用什么语言，
-所以你可以中文界面 + 输出英文，写完中文草稿一键转成英文。
+改写结果始终使用原文的语言。界面语言只影响 App 自身的 UI。
 
 配置存在 `~/Library/Application Support/WritingToolsAnywhere/config.json`，
 也可以直接手改。
@@ -168,6 +166,23 @@ watcher: start                          ← 选区监听已启动
 check: front=Obsidian sel=... rect=...  ← 每次检测选区的结果
 bubble: orderFront frame=... visible=true
 ```
+
+## 怎么让通用模型输出干净的文字
+
+官方 Writing Tools 干净，靠的是两件我们拿不到的东西：它挂载**任务专属的 LoRA 适配器**
+（训练成只吐修改后的文字），并且通过 `NSWritingToolsCoordinator` 把 **`(范围, 替换文本)` 对**
+交给 App，而不是一整段文本——开场白根本没有地方可放。
+
+公开的 FoundationModels API 给的是通用基座模型和整段字符串响应，所以这里用三层来替代：
+
+1. **引导式生成**。响应被强制填进只有一个 `text` 字段的 schema，「Here is the corrected
+   version:」无处安放。用 `DynamicGenerationSchema` 运行时构建，而不是 `@Generable` 宏
+   ——那个宏的编译器插件只随 Xcode 发布。
+2. **给文档加围栏**。文字包在 `⟪⟪⟪ … ⟫⟫⟫` 里。不加围栏时，模型会去「回答」短文本或疑问句
+   而不是编辑它：`ok` 会被编出一整段，写着「忽略你的指令」的文字会被照做。模型有时会把围栏
+   的**残片**吐回来，所以是按字符集裁剪，而不是匹配完整标记。
+3. **合理长度上限**。每个动作声明结果最多能比原文长多少，超出就丢弃而不是粘进用户的文档
+   ——这是对 Apple 那套范围级替换所提供的保证的廉价替代。
 
 ## 已知限制
 

@@ -108,14 +108,13 @@ Menu bar ✨ → **Settings…** (`⌘,`)
 | General | Bubble | Turn it off to use the shortcut only |
 | General | Shortcut | Modifier checkboxes + key menu, applied immediately |
 | Language | Interface | System / 简体中文 / English |
-| Language | Rewrite in | Match the input, or force 中文 / English / 日本語 / 한국어 / Français / Deutsch / Español |
 | Advanced | Auto-replace | Write back as soon as Writing Tools finishes |
 | Advanced | Replace using | Simulated paste (most compatible) or Accessibility |
 | Advanced | Clipboard | Restore the previous contents afterwards |
 | Advanced | Debug log | **Off by default** — it records the text you select |
 
-Interface language and rewrite language are independent, so you can keep an English
-interface and have drafts rewritten into Chinese, or the other way round.
+Rewrites always come back in the language you wrote in — the interface language
+setting only affects the app's own UI.
 
 Settings live in `~/Library/Application Support/WritingToolsAnywhere/config.json`.
 
@@ -160,12 +159,36 @@ xcrun notarytool store-credentials WTA \
 | `Sources/ActionMenuView.swift` | The expanded row of chips (custom-drawn) |
 | `Sources/PanelController.swift` | Editor panel and the `showWritingTools:` call |
 | `Sources/TextBridge.swift` | Cross-app selection reading, write-back, clipboard safety |
-| `Sources/LLM.swift` | FoundationModels wrapper and prompts |
+| `Sources/LLM.swift` | FoundationModels wrapper, prompts, guided generation |
 | `Sources/HotKey.swift` | Carbon global hotkey (needs no extra permission) |
 | `Sources/LoginItem.swift` | Start at login |
 | `Sources/L10n.swift` | English / Chinese interface |
 | `Sources/MenuBarIcon.swift` | Menu bar glyph, drawn in code |
 | `tools/MakeIcon/main.swift` | App icon, drawn with Core Graphics at every size |
+
+## Getting clean output from a general-purpose model
+
+Apple's own Writing Tools is clean for two reasons, neither of them available here:
+it runs **task-specific LoRA adapters** trained to emit only the edited text, and it
+hands the host app **`(range, replacement)` pairs** through `NSWritingToolsCoordinator`
+rather than a blob of text — a preamble has nowhere to go.
+
+The public FoundationModels API gives you the general base model and a whole-string
+response, so three things do that job instead:
+
+1. **Guided generation.** The response is forced into a schema with a single `text`
+   field, so "Here is the corrected version:" has nowhere to live. Built from
+   `DynamicGenerationSchema` at runtime rather than the `@Generable` macro, whose
+   compiler plugin ships only with Xcode.
+2. **A fenced document.** The text is wrapped in `⟪⟪⟪ … ⟫⟫⟫`. Without it the model
+   answers short or question-shaped input instead of editing it — `ok` produced an
+   invented paragraph, and text reading "ignore your instructions" was obeyed. The
+   model echoes fragments of the fence back, so the fence characters are trimmed as a
+   character set rather than matched as whole markers.
+3. **A plausibility ceiling.** Each action declares how much longer than the input a
+   trustworthy result can be. Anything past that is discarded rather than pasted into
+   the user's document — the cheap equivalent of the guarantee Apple gets from
+   range-level replacement.
 
 ## Known limitations
 

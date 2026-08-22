@@ -22,7 +22,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.installEscapeMonitor()
 
         bubble = BubbleController()
-        bubble.outputLanguage = prefs.outputLanguage
         bubble.onQuickAction = { [weak self] action, selection in
             self?.runQuickAction(action, on: selection)
         }
@@ -101,7 +100,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         L10n.apply(prefs.uiLanguage)
         Log.isEnabled = prefs.debugLogging
         panel.updatePrefs(prefs)
-        bubble.outputLanguage = prefs.outputLanguage
         watcher.isEnabled = prefs.bubbleEnabled
         if !prefs.bubbleEnabled { bubble.hide() }
 
@@ -131,10 +129,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func runQuickAction(_ action: QuickAction, on selection: Selection) {
         let cap = capture(from: selection)
-        Task { [prefs] in
+        let prefs = self.prefs
+        Task {
             do {
-                let result = try await LLM.run(action, on: selection.text,
-                                               language: prefs.outputLanguage)
+                let result = try await LLM.run(action, on: selection.text)
                 await MainActor.run {
                     self.bubble.hide()
                     self.watcher.reset()

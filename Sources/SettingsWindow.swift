@@ -137,13 +137,8 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         }
         grid.addRow(with: [label(L("界面语言", "Interface")), ui])
 
-        let out = popup(OutputLanguage.allCases.map(\.label),
-                        selected: OutputLanguage.allCases.firstIndex(of: prefs.outputLanguage) ?? 0) { [weak self] i in
-            self?.mutate { $0.outputLanguage = OutputLanguage.allCases[i] }
-        }
-        grid.addRow(with: [label(L("改写输出语言", "Rewrite in")), out])
-        hint(grid, L("「跟随原文」会用你写作时使用的语言回复。",
-                     "“Match the input” replies in whatever language you wrote in."))
+        hint(grid, L("改写结果始终使用原文的语言。",
+                     "Rewrites always come back in the language you wrote in."))
     }
 
     private func buildAdvanced(_ grid: NSGridView) {

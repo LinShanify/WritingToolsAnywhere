@@ -29,40 +29,6 @@ extension HotKeySpec: Codable {
     }
 }
 
-enum OutputLanguage: String, Codable, CaseIterable {
-    case auto, chinese, traditionalChinese, english, japanese, korean, french, german, spanish
-
-    var label: String {
-        switch self {
-        case .auto:               return L("跟随原文", "Match the input")
-        case .chinese:            return "简体中文"
-        case .traditionalChinese: return "繁體中文"
-        case .english:            return "English"
-        case .japanese:           return "日本語"
-        case .korean:             return "한국어"
-        case .french:             return "Français"
-        case .german:             return "Deutsch"
-        case .spanish:            return "Español"
-        }
-    }
-
-    /// Appended to every rewrite instruction.
-    var promptClause: String {
-        switch self {
-        case .auto:
-            return "Write in the same language as the input. If the input is Chinese, reply in Chinese."
-        case .chinese:            return "Write your reply in Simplified Chinese, whatever language the input is in."
-        case .traditionalChinese: return "Write your reply in Traditional Chinese, whatever language the input is in."
-        case .english:            return "Write your reply in English, whatever language the input is in."
-        case .japanese:           return "Write your reply in Japanese, whatever language the input is in."
-        case .korean:             return "Write your reply in Korean, whatever language the input is in."
-        case .french:             return "Write your reply in French, whatever language the input is in."
-        case .german:             return "Write your reply in German, whatever language the input is in."
-        case .spanish:            return "Write your reply in Spanish, whatever language the input is in."
-        }
-    }
-}
-
 enum WriteBackMode: String, Codable, CaseIterable {
     case paste, accessibility
 
@@ -79,7 +45,6 @@ struct Prefs: Codable {
     var bubbleEnabled = true
     var autoApply = false
     var uiLanguage = UILanguage.system
-    var outputLanguage = OutputLanguage.auto
     var writeBackMode = WriteBackMode.paste
     var restoreClipboard = true
     var captureViaAX = true
@@ -88,7 +53,7 @@ struct Prefs: Codable {
     var debugLogging = false
 
     enum K: String, CodingKey {
-        case hotkey, bubbleEnabled, autoApply, uiLanguage, outputLanguage
+        case hotkey, bubbleEnabled, autoApply, uiLanguage
         case writeBackMode, restoreClipboard, captureViaAX, debugLogging
     }
 
@@ -100,7 +65,6 @@ struct Prefs: Codable {
         bubbleEnabled = try c.decodeIfPresent(Bool.self, forKey: .bubbleEnabled) ?? true
         autoApply = try c.decodeIfPresent(Bool.self, forKey: .autoApply) ?? false
         uiLanguage = try c.decodeIfPresent(UILanguage.self, forKey: .uiLanguage) ?? .system
-        outputLanguage = try c.decodeIfPresent(OutputLanguage.self, forKey: .outputLanguage) ?? .auto
         writeBackMode = try c.decodeIfPresent(WriteBackMode.self, forKey: .writeBackMode) ?? .paste
         restoreClipboard = try c.decodeIfPresent(Bool.self, forKey: .restoreClipboard) ?? true
         captureViaAX = try c.decodeIfPresent(Bool.self, forKey: .captureViaAX) ?? true

@@ -58,7 +58,6 @@ final class BubbleController: NSObject {
     private var selection: Selection?
     private var hideWork: DispatchWorkItem?
 
-    var outputLanguage: OutputLanguage = .auto
     var onQuickAction: ((QuickAction, Selection) -> Void)?
     var onOpenWritingTools: ((Selection) -> Void)?
 
@@ -170,7 +169,7 @@ final class BubbleController: NSObject {
         panel.orderFront(nil)
         Log.write("bubble: orderFront frame=" + String(describing: panel.frame)
                   + " visible=" + String(panel.isVisible))
-        LLM.prewarm(language: outputLanguage)
+        LLM.prewarm()
     }
 
     func hide() {
