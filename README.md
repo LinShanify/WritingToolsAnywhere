@@ -193,6 +193,12 @@ kind of wrong to paste into someone's message.
    character set rather than matched as whole markers.
 3. **A plausibility ceiling.** A result more than ~1.6× the input is a continuation, not
    a correction, and is discarded rather than pasted.
+4. **A language lock.** The document's language is identified locally with
+   `NLLanguageRecognizer` and named outright in the instructions. Told merely to "write
+   in the same language", the model translated Chinese into English in every trial;
+   told "the document is written in Chinese, your reply MUST be in Chinese", it stopped.
+   The same detector checks the reply, and a result that changed language is discarded —
+   the check is deliberately not the model's own judgement.
 
 When the result comes back identical to the input, the bubble says so instead of pasting
 your own words back over themselves.
@@ -261,6 +267,9 @@ state. Turning on the debug log writes to `~/Library/Logs/WritingToolsAnywhere.l
 - Language detection needs a few words. Below 0.6 confidence — "ok" scores as Polish,
   "LGTM" as Turkish — the direction falls back to your configured pair rather than
   trusting the guess.
+- Chinese proofreading is weaker than English. It reliably fixes some homophone
+  confusions (觉的 → 觉得, 跑的 → 跑得) and misses others (写的 → 写得, 在评估 → 再评估).
+  This is the base model's Chinese ability, not something prompting fixes.
 - Plain text only — bold, links and other rich formatting are lost.
 - "Simulated paste" briefly takes over the clipboard before restoring it. Clipboard
   managers may record that one entry.

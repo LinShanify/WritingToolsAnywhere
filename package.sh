@@ -102,9 +102,76 @@ mkdir -p dist
 DMG="dist/$APP_NAME-$VERSION.dmg"
 ln -s /Applications "$STAGE/Applications"
 
+# A plain disk image opens as two unexplained icons. Giving it a background with an
+# arrow, and pinning the icons either side of that arrow, is the difference between
+# "here are two things" and "drag this onto that".
+if [ -f Resources/dmg-background.png ]; then
+    mkdir -p "$STAGE/.background"
+    if [ -f Resources/dmg-background@2x.png ]; then
+        tiffutil -cathidpicheck Resources/dmg-background.png Resources/dmg-background@2x.png \
+                 -out "$STAGE/.background/background.tiff" >/dev/null 2>&1 \
+            || cp Resources/dmg-background.png "$STAGE/.background/background.tiff"
+    else
+        cp Resources/dmg-background.png "$STAGE/.background/background.tiff"
+    fi
+fi
+
+# Built read-write so Finder can record the layout, then flattened to compressed
+# read-only at the end.
+RW_DMG=$(mktemp -d)/rw.dmg
 rm -f "$DMG"
 hdiutil create -volname "$APP_NAME" -srcfolder "$STAGE" \
-    -ov -format UDZO -quiet "$DMG"
+    -ov -format UDRW -quiet "$RW_DMG"
+
+# Never assume the mount point: if a volume of this name is already attached — a stale
+# mount from an interrupted build, say — macOS silently appends a number, and every
+# later step that hard-codes the plain name fails.
+MOUNT_DIR=$(hdiutil attach "$RW_DMG" -readwrite -noverify -noautoopen \
+            | grep -o '/Volumes/.*' | head -1)
+if [ -z "$MOUNT_DIR" ]; then
+    echo "✗ could not mount the working image"
+    exit 1
+fi
+VOLUME_NAME=$(basename "$MOUNT_DIR")
+sleep 1
+
+# Finder is the only thing that writes .DS_Store, so the layout has to go through it.
+# This needs permission to control Finder; without it the image still works, it just
+# looks like an unarranged folder.
+if osascript >/dev/null 2>&1 <<APPLESCRIPT
+tell application "Finder"
+    tell disk "$VOLUME_NAME"
+        open
+        set current view of container window to icon view
+        set toolbar visible of container window to false
+        set statusbar visible of container window to false
+        set the bounds of container window to {200, 120, 840, 520}
+        set opts to the icon view options of container window
+        set arrangement of opts to not arranged
+        set icon size of opts to 128
+        set text size of opts to 12
+        set background picture of opts to file ".background:background.tiff"
+        set position of item "$APP_NAME.app" of container window to {165, 195}
+        set position of item "Applications" of container window to {475, 195}
+        update without registering applications
+        delay 2
+        close
+    end tell
+end tell
+APPLESCRIPT
+then
+    echo "  ✓ layout applied"
+else
+    echo "  ⚠ could not arrange the window (Finder automation was refused)."
+    echo "    The image still installs correctly, it just won't show the arrow."
+fi
+
+sync
+hdiutil detach "$MOUNT_DIR" -quiet 2>/dev/null \
+    || hdiutil detach "$MOUNT_DIR" -force -quiet 2>/dev/null \
+    || echo "  ⚠ could not unmount $MOUNT_DIR"
+hdiutil convert "$RW_DMG" -format UDZO -imagekey zlib-level=9 -o "$DMG" -quiet
+rm -rf "$(dirname "$RW_DMG")"
 
 # The app inside is notarised, but to Gatekeeper the disk image carrying it is a
 # separate piece of code — left unsigned it assesses as "no usable signature". Sign and
