@@ -28,9 +28,12 @@ enum BubbleAction: CaseIterable {
     }
 }
 
+struct TimeoutError: Error {}
+
 enum LLMError: LocalizedError {
     case implausibleResult
     case languageChanged
+    case structureChanged
 
     var errorDescription: String? {
         switch self {
@@ -38,6 +41,8 @@ enum LLMError: LocalizedError {
             return L("结果异常，已放弃", "Result looked wrong — discarded")
         case .languageChanged:
             return L("模型改变了语言，已放弃", "The model changed the language — discarded")
+        case .structureChanged:
+            return L("模型改变了行结构，已放弃", "The model reshaped the text — discarded")
         }
     }
 }
@@ -117,9 +122,28 @@ enum LLM {
         Keep the author's voice, register and length. Do not make the text more formal, \
         do not add greetings or sign-offs, and do not add or remove any point the \
         document did not make.
-        Preserve line breaks, lists, indentation, and any markup.
+        STRUCTURE IS FIXED. The document has a shape and you must not change it:
+        - Never merge lines. A document of N lines must come back as N lines, in order.
+        - Never remove or add a list marker, bullet, number or indent.
+        - Never change the grammatical mood. An imperative stays imperative — "fix the \
+        bug" is a task someone still has to do, and rewriting it as "the bug has been \
+        fixed" states something that is not true.
+
         If the document is already correct, return it unchanged.\(chineseHomophones)
         """
+    }
+
+    /// A bullet, dash or "1." at the start of a line, ignoring indentation.
+    private static func hasListMarker(_ line: Substring) -> Bool {
+        let trimmed = line.drop { $0 == " " || $0 == "\t" }
+        guard let first = trimmed.first else { return false }
+        if "-*•‣·".contains(first) {
+            return trimmed.dropFirst().first == " "
+        }
+        let digits = trimmed.prefix(while: \.isNumber)
+        guard !digits.isEmpty else { return false }
+        let afterDigits = trimmed.dropFirst(digits.count)
+        return afterDigits.first == "." || afterDigits.first == ")"
     }
 
     /// Below 0.6 confidence the guess is worthless — short strings score as Polish or
@@ -196,6 +220,27 @@ enum LLM {
            before != after {
             Log.write("llm: discarded result, language changed \(before.rawValue) → \(after.rawValue)")
             throw LLMError.languageChanged
+        }
+
+        // Proofreading never merges lines. Asked to tidy a three-item checklist the model
+        // has collapsed it into one sentence and, worse, flipped the mood: "fix the
+        // timeout issue" came back as "the timeout issue has been fixed", turning a list
+        // of things to do into a claim they were done. Line count is a shape the edit
+        // must preserve, and unlike the mood it can simply be counted.
+        let before = text.split(separator: "\n", omittingEmptySubsequences: false)
+        let after = result.split(separator: "\n", omittingEmptySubsequences: false)
+        if before.count != after.count {
+            Log.write("llm: discarded result, \(before.count) lines became \(after.count)")
+            throw LLMError.structureChanged
+        }
+
+        // Line count alone is not enough: a three-item list came back as three lines with
+        // every "- " stripped and commas bolted on. Bullets are part of the shape too.
+        let markersBefore = before.filter(hasListMarker).count
+        let markersAfter = after.filter(hasListMarker).count
+        if markersBefore > markersAfter {
+            Log.write("llm: discarded result, \(markersBefore) list markers became \(markersAfter)")
+            throw LLMError.structureChanged
         }
         return result
     }

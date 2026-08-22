@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var trustTimer: Timer?
     private var updateTimer: Timer?
     private var pendingUpdate: AppRelease?
+    private var inFlight: Task<Void, Never>?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -158,9 +159,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                            _ work: @escaping (String) async throws -> String?) {
         let cap = capture(from: selection)
         let prefs = self.prefs
-        Task {
+
+        // A request that never returns used to leave the bubble spinning with no way out.
+        // Whatever wedges it, the user should not be the one who has to notice.
+        inFlight?.cancel()
+        inFlight = Task {
             do {
-                let result = try await work(selection.text)
+                let result = try await Self.withTimeout(seconds: 25) {
+                    try await work(selection.text)
+                }
 
                 guard let result, result != selection.text else {
                     await MainActor.run {
@@ -176,11 +183,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.global(qos: .userInitiated).async {
                     TextBridge.writeBack(result, to: cap, prefs: prefs)
                 }
+            } catch is TimeoutError {
+                Log.write("transform: timed out")
+                await MainActor.run {
+                    self.bubble.showMessage(L("处理超时，已取消", "Timed out — cancelled"))
+                }
+            } catch is CancellationError {
+                // Superseded by a newer request; the new one owns the bubble now.
             } catch {
+                Log.write("transform: \(error.localizedDescription)")
                 await MainActor.run {
                     self.bubble.showMessage(error.localizedDescription)
                 }
             }
+        }
+    }
+
+    /// Races the work against a sleeper, so a call with no timeout of its own gains one.
+    private static func withTimeout<T: Sendable>(
+        seconds: Double, _ work: @escaping @Sendable () async throws -> T
+    ) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask { try await work() }
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw TimeoutError()
+            }
+            defer { group.cancelAll() }
+            guard let first = try await group.next() else { throw TimeoutError() }
+            return first
         }
     }
 

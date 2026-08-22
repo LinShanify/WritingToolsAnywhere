@@ -204,7 +204,12 @@ kind of wrong to paste into someone's message.
    character set rather than matched as whole markers.
 3. **A plausibility ceiling.** A result more than ~1.6× the input is a continuation, not
    a correction, and is discarded rather than pasted.
-4. **A language lock.** The document's language is identified locally with
+4. **A structure lock.** Line count and list markers must survive the edit. Asked to
+   tidy a three-item checklist, the model collapsed it into one sentence and flipped the
+   mood — "fix the timeout issue" came back as "the timeout issue has been fixed",
+   turning a list of things to do into a claim they were done. Both are counted, and a
+   result that reshaped the text is discarded.
+5. **A language lock.** The document's language is identified locally with
    `NLLanguageRecognizer` and named outright in the instructions. Told merely to "write
    in the same language", the model translated Chinese into English in every trial;
    told "the document is written in Chinese, your reply MUST be in Chinese", it stopped.
@@ -273,6 +278,10 @@ state. Turning on the debug log writes to `~/Library/Logs/WritingToolsAnywhere.l
 - Language detection needs a few words. Below 0.6 confidence — "ok" scores as Polish,
   "LGTM" as Turkish — the direction falls back to your configured pair rather than
   trusting the guess.
+- Translation can pick the wrong sense of domain jargon — "standup" came back as a
+  standing speech rather than the meeting. It's Apple's engine, so this isn't tunable
+  from here; note that it's a wrong word, not an invented fact, which is the difference
+  that put translation on this engine rather than the language model.
 - Chinese proofreading is weaker than English. It reliably fixes some homophone
   confusions (觉的 → 觉得, 跑的 → 跑得) and misses others (写的 → 写得, 在评估 → 再评估).
   This is the base model's Chinese ability, not something prompting fixes.
