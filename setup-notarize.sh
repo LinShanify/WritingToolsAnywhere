@@ -40,12 +40,33 @@ echo "   ✓ $DEV_ID"
 
 echo
 echo "② Apple 中间证书（证书链要用）"
-if security find-certificate -a -c "Developer ID Certification Authority" >/dev/null 2>&1; then
+# Double-clicking the .cer only installs your own certificate. codesign needs the whole
+# chain present in the keychain — `security verify-cert` fetches it over the network and
+# reports success, so this failure only surfaces as "unable to build chain to self-signed
+# root" at the moment you actually sign.
+if security find-certificate -c "Developer ID Certification Authority" >/dev/null 2>&1; then
     echo "   ✓ 已安装"
 else
-    echo "   ⚠ 没找到。多数情况下装 .cer 时会自动带上；如果签名时报"
-    echo "     unable to build chain，去 https://www.apple.com/certificateauthority/"
-    echo "     下载 Developer ID - G2 中间证书双击安装。"
+    echo "   ✗ 缺失（双击 .cer 只装你自己那张，Apple 的中间证书要单独装）"
+    echo "   → 从 apple.com 下载 DeveloperIDG2CA.cer"
+    TMP=$(mktemp -d)
+    if curl -fsSL -o "$TMP/DeveloperIDG2CA.cer" \
+            https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer; then
+        subject=$(openssl x509 -inform DER -in "$TMP/DeveloperIDG2CA.cer" -noout -subject)
+        case "$subject" in
+            *"Developer ID Certification Authority"*)
+                security import "$TMP/DeveloperIDG2CA.cer" \
+                    -k "$HOME/Library/Keychains/login.keychain-db" >/dev/null
+                echo "   ✓ 已安装" ;;
+            *)
+                echo "   ✗ 下载到的不是预期的证书，已跳过：$subject"; exit 1 ;;
+        esac
+    else
+        echo "   ✗ 下载失败。手动去 https://www.apple.com/certificateauthority/"
+        echo "     下载 Developer ID - G2 中间证书并双击安装。"
+        exit 1
+    fi
+    rm -rf "$TMP"
 fi
 
 echo

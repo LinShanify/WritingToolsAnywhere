@@ -163,7 +163,13 @@ only thing to obtain by hand is the certificate itself:
    Authority**, saved to disk. The private key stays in your keychain.
 2. [developer.apple.com/account/resources/certificates](https://developer.apple.com/account/resources/certificates)
    → **+** → **Developer ID Application** → upload the request → download the `.cer`.
-3. Double-click the `.cer` to install it.
+3. Double-click the `.cer` to install it. This installs **only your own certificate** —
+   `codesign` also needs Apple's *Developer ID Certification Authority* intermediate in
+   the keychain, or signing fails with `unable to build chain to self-signed root`.
+   `setup-notarize.sh` detects that and installs it for you.
+
+   (`security verify-cert` fetches the intermediate over the network and reports success
+   even when it's missing locally, so it's a misleading way to check.)
 
 No Xcode is needed for any of this — `notarytool` and `stapler` ship with the Command
 Line Tools. The app signs cleanly under the hardened runtime that notarisation
