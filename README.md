@@ -218,8 +218,13 @@ one, otherwise ad-hoc with a printed warning. Both the app and the disk image ar
 signed, notarised and stapled, and the script asserts the result the way Gatekeeper
 will see it — a broken signature fails here rather than on someone else's Mac.
 
-`setup-notarize.sh` checks the Developer ID setup, installs Apple's intermediate
-certificate if it's missing, and stores notarisation credentials.
+Notarising needs a `notarytool` keychain profile. Create one once —
+
+```bash
+xcrun notarytool store-credentials <name> --apple-id you@example.com --team-id TEAMID
+```
+
+— then pass that name to `--notarize`.
 
 ## Project layout
 

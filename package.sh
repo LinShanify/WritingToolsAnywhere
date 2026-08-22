@@ -43,8 +43,31 @@ DEV_ID=$(security find-identity -v -p codesigning \
 
 if [ -n "$DEV_ID" ]; then
     echo "→ signing for distribution: $DEV_ID"
-    codesign --force --deep --options runtime --timestamp \
-             --sign "$DEV_ID" "$BUNDLE"
+    # Capture rather than stream: codesign reports a missing intermediate as a *warning*
+    # alongside an opaque errSecInternalComponent, and the useful half scrolls past.
+    if ! SIGN_OUTPUT=$(codesign --force --deep --options runtime --timestamp \
+                                --sign "$DEV_ID" "$BUNDLE" 2>&1); then
+        echo "$SIGN_OUTPUT"
+        if grep -q "unable to build chain" <<<"$SIGN_OUTPUT"; then
+            cat <<'NOTE'
+
+✗ The signature has no path to a trusted root.
+
+  Double-clicking the certificate downloaded from Apple installs only your own
+  certificate. codesign also needs the "Developer ID Certification Authority"
+  intermediate present in the keychain.
+
+  `security verify-cert` is no help diagnosing this: it fetches the intermediate over
+  the network and reports success even when the keychain lacks it.
+
+  Fix:
+      curl -O https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+      security import DeveloperIDG2CA.cer -k ~/Library/Keychains/login.keychain-db
+NOTE
+        fi
+        exit 1
+    fi
+    echo "$SIGN_OUTPUT"
     SIGNED_PROPERLY=1
 else
     echo "→ no Developer ID found; signing ad-hoc"
