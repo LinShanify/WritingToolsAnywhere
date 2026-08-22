@@ -133,6 +133,22 @@ enum LLM {
         """
     }
 
+    /// Splits on every line separator, not just `\n`.
+    ///
+    /// Swift treats `\r\n` as a single Character, so splitting on `"\n"` does not match it
+    /// at all — text copied from a web or Electron app came back as one line however many
+    /// it had, and the structure check rejected every edit. U+2028 and U+2029 turn up in
+    /// rich text and fail the same way.
+    private static func lines(of text: String) -> [Substring] {
+        let unified = text
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .replacingOccurrences(of: "\u{2028}", with: "\n")
+            .replacingOccurrences(of: "\u{2029}", with: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return unified.split(separator: "\n", omittingEmptySubsequences: false)
+    }
+
     /// A bullet, dash or "1." at the start of a line, ignoring indentation.
     private static func hasListMarker(_ line: Substring) -> Bool {
         let trimmed = line.drop { $0 == " " || $0 == "\t" }
@@ -231,9 +247,8 @@ enum LLM {
         // and trailing whitespace, so comparing it against an untrimmed selection counted
         // a trailing newline as a lost line — and a selection dragged over one line in a
         // chat app usually carries exactly that, which rejected almost every edit.
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let before = trimmed.split(separator: "\n", omittingEmptySubsequences: false)
-        let after = result.split(separator: "\n", omittingEmptySubsequences: false)
+        let before = lines(of: text)
+        let after = lines(of: result)
         if before.count != after.count {
             Log.write("llm: discarded result, \(before.count) lines became \(after.count)")
             throw LLMError.structureChanged

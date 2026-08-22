@@ -339,6 +339,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switch alert.runModal() {
         case .alertFirstButtonReturn:
             NSWorkspace.shared.open(release.page)
+            offerToQuitForInstall()
         case .alertThirdButtonReturn:
             prefs.skippedVersion = release.version
             prefs.save()
@@ -349,7 +350,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openUpdatePage() {
-        if let release = pendingUpdate { NSWorkspace.shared.open(release.page) }
+        guard let release = pendingUpdate else { return }
+        NSWorkspace.shared.open(release.page)
+        offerToQuitForInstall()
+    }
+
+    /// macOS refuses to replace an app while it is running, and the error Finder shows
+    /// says nothing about how to get past it. Offer the way out here, where we know an
+    /// install is about to be attempted.
+    private func offerToQuitForInstall() {
+        let alert = NSAlert()
+        alert.messageText = L("安装前需要退出本应用", "Quit before installing")
+        alert.informativeText = L(
+            "macOS 不允许替换正在运行的程序。把新版本拖进「应用程序」之前，本应用必须先退出。\n\n"
+            + "现在退出吗？下载完成、装好之后重新打开即可。",
+            "macOS won't replace an app while it's running, so this has to quit before you "
+            + "drag the new version into Applications.\n\nQuit now? Reopen it once the new "
+            + "version is installed.")
+        alert.addButton(withTitle: L("现在退出", "Quit Now"))
+        alert.addButton(withTitle: L("继续运行", "Keep Running"))
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn {
+            Log.write("quitting for install")
+            NSApp.terminate(nil)
+        }
+        NSApp.hide(nil)
     }
 
     @objc private func promptForAccessibility() {

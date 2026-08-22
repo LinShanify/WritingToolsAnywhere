@@ -82,6 +82,9 @@ afterwards.
 Download the `.dmg` and drag the app to Applications. The disk image and the app are
 both signed with a Developer ID and notarised, so it opens with no warnings.
 
+Updating over an existing copy? macOS won't replace a running app — quit it from the
+menu bar first. The in-app update prompt offers to do that for you.
+
 Or build it yourself:
 
 ```bash
