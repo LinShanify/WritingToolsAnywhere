@@ -133,6 +133,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task {
             do {
                 let result = try await LLM.run(action, on: selection.text)
+
+                // The small model sometimes declines to transform the text and hands it
+                // straight back. Say so rather than round-tripping the clipboard to
+                // paste the user's own words on top of themselves.
+                guard result != selection.text else {
+                    await MainActor.run {
+                        self.bubble.showMessage(L("没有可改的地方", "Nothing to change"))
+                    }
+                    return
+                }
+
                 await MainActor.run {
                     self.bubble.hide()
                     self.watcher.reset()
@@ -142,7 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             } catch {
                 await MainActor.run {
-                    self.bubble.showError(L("失败：", "Failed: ") + error.localizedDescription)
+                    self.bubble.showMessage(error.localizedDescription)
                 }
             }
         }

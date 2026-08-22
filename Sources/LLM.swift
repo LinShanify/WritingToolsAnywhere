@@ -33,10 +33,19 @@ enum QuickAction: String, CaseIterable {
         case .rewrite:
             return "Rewrite the text so it reads more clearly and flows better, keeping the original meaning and roughly the original length."
         case .friendly:
-            return "Rewrite the text in a warm, friendly, conversational tone."
+            return "Rewrite the document in a warm, conversational register. Keep it close to "
+                 + "the original length. Do NOT add greetings, sign-offs, pleasantries, or any "
+                 + "statement the original did not make."
         case .professional:
-            return "Rewrite the text in a polished, professional tone suitable for workplace communication."
+            // Without the leash this produced "Hi [Recipient's Name] … Best regards,
+            // [Your Name]" — a 2.4x letter template — for a one-line chat message.
+            return "Rewrite the document in a polished, professional register suitable for a "
+                 + "workplace chat message. Keep it close to the original length. Do NOT add "
+                 + "greetings, sign-offs, pleasantries, or any statement the original did not make."
         case .concise:
+            // Deliberately mild. A stronger version ("the result MUST be clearly shorter",
+            // plus an explicit character budget) tested worse, not better: over-constrained,
+            // the 3B model stops editing and returns the document verbatim.
             return "Rewrite the text to be significantly shorter. Cut filler and redundancy while keeping every substantive point."
         }
     }
@@ -56,8 +65,8 @@ enum QuickAction: String, CaseIterable {
         case .proofread:    return (1.6, 24)    // corrections, not continuations
         case .concise:      return (1.1, 16)    // must not grow at all, really
         case .rewrite:      return (2.5, 60)
-        case .friendly:     return (4.0, 120)   // short notes legitimately expand
-        case .professional: return (4.0, 120)
+        case .friendly:     return (2.0, 60)
+        case .professional: return (2.0, 60)
         }
     }
 

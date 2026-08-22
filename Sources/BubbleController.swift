@@ -266,7 +266,7 @@ final class BubbleController: NSObject {
         onOpenWritingTools?(selection)
     }
 
-    func showError(_ message: String) {
+    func showMessage(_ message: String) {
         spinner.stopAnimation(nil)
         workingLabel.stringValue = message
         setMode(.working)

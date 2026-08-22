@@ -20,7 +20,7 @@ fi
 echo "→ compiling"
 swiftc -O \
     -target arm64-apple-macos26.0 \
-    -framework AppKit -framework Carbon -framework ApplicationServices -framework FoundationModels \
+    -framework AppKit -framework Carbon -framework ApplicationServices -framework FoundationModels -framework Translation -framework NaturalLanguage \
     -o "$BUNDLE/Contents/MacOS/$APP_NAME" \
     Sources/*.swift
 

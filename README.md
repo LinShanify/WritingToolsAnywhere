@@ -166,15 +166,36 @@ xcrun notarytool store-credentials WTA \
 | `Sources/MenuBarIcon.swift` | Menu bar glyph, drawn in code |
 | `tools/MakeIcon/main.swift` | App icon, drawn with Core Graphics at every size |
 
-## Getting clean output from a general-purpose model
+## Quality ceiling: why the one-click chips can't match Apple
 
-Apple's own Writing Tools is clean for two reasons, neither of them available here:
-it runs **task-specific LoRA adapters** trained to emit only the edited text, and it
-hands the host app **`(range, replacement)` pairs** through `NSWritingToolsCoordinator`
-rather than a blob of text — a preamble has nowhere to go.
+**The one-click actions will not reach the quality of Apple's own Writing Tools, and
+they can't be made to.** If you want Apple-grade output, use the **✨ chip** — that is
+the manual path, and it runs Apple's real thing.
 
-The public FoundationModels API gives you the general base model and a whole-string
-response, so three things do that job instead:
+### Why
+
+Apple's Writing Tools does not prompt a general model. It loads **task-specific LoRA
+adapters** — one trained for proofreading, one for summarising, one for tone — and
+swaps them in at runtime. It then delivers results as **`(range, replacement)` pairs**
+through `NSWritingToolsCoordinator`, editing the app's existing text storage rather
+than returning a blob of prose.
+
+The public FoundationModels API gives you neither. You get the general-purpose ~3B base
+model and a whole-string response. Apple's shipped adapters are private system assets;
+`SystemLanguageModel.Adapter(name:)` loads adapters *you* provide, not Apple's.
+
+### What that costs, measured
+
+| Action | Behaviour on real chat messages |
+|---|---|
+| Proofread | Reliable. This is the base model's natural mode and it does it well. |
+| Professional | Needed an explicit leash. Without one, a single-line chat message came back as a 2.4× letter template — `Hi [Recipient's Name] … Best regards, [Your Name]`. |
+| Friendly | Same leash, same reason; it liked appending "Thanks for your understanding!" |
+| Rewrite | Often indistinguishable from Proofread. Low added value. |
+| Concise | **Unreliable.** Roughly half the time it hands the document straight back unchanged. Tightening the prompt made it *worse*: given "the result MUST be clearly shorter" plus a character budget, the model stopped editing altogether and copied its input. The mild prompt is kept for that reason. |
+| Translate | Not the language model at all — it fabricated. "明天" (tomorrow) came back as "Wednesday". Translation goes through `Translation.framework` instead. |
+
+Three guards make the output usable rather than good:
 
 1. **Guided generation.** The response is forced into a schema with a single `text`
    field, so "Here is the corrected version:" has nowhere to live. Built from
@@ -187,10 +208,30 @@ response, so three things do that job instead:
    character set rather than matched as whole markers.
 3. **A plausibility ceiling.** Each action declares how much longer than the input a
    trustworthy result can be. Anything past that is discarded rather than pasted into
-   the user's document — the cheap equivalent of the guarantee Apple gets from
-   range-level replacement.
+   your document.
 
-## Known limitations
+When a result comes back identical to the input, the bubble says so instead of pasting
+your own words back over themselves.
+
+### Could we train our own adapter?
+
+Technically yes. The API is public, and Apple ships a Python toolkit for training
+rank-32 LoRA adapters (Apple silicon with ≥32 GB, or a Linux GPU box). Two reasons it
+isn't worth it here:
+
+- **Adapters are locked to a base model version** — one adapter per system model
+  version, no exceptions. A macOS update can break it, and the app then fails for
+  everyone until it's retrained and reshipped.
+- **It wouldn't close the real gap.** The difference from Apple isn't only the model,
+  it's the transport: Apple edits ranges in place, we replace a whole selection. An
+  adapter doesn't change that.
+
+The honest division of labour: **the chips are the convenience path, the ✨ chip is the
+quality path.** It puts your text into a real `NSTextView` and calls
+`showWritingTools:`, so you get Apple's own adapters, prompts, and accept/reject UI —
+in an app that was never going to offer them.
+
+## Known limitations## Known limitations
 
 - Plain text only — bold, links and other rich formatting are lost.
 - "Simulated paste" briefly takes over the clipboard before restoring it. Clipboard
