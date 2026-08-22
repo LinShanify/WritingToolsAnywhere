@@ -3,10 +3,10 @@ import FoundationModels
 
 /// What the bubble offers. Deliberately three things.
 ///
-/// Earlier versions had five one-click rewrites (friendly, professional, concise…).
-/// Measured against real chat messages they ranged from redundant to broken — see the
-/// quality-ceiling section in the README. Anything beyond "make the grammar right"
-/// belongs in Apple's own panel, which actually has the adapters for it.
+/// Inline editing is scoped to grammar because that is what a general-purpose model is
+/// reliable at. Tone and summarising need the task-trained adapters behind
+/// `showWritingTools:`, so they live there — see the quality-ceiling section in the
+/// README.
 enum BubbleAction: CaseIterable {
     case proofread, translate, writingTools
 

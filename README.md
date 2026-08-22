@@ -29,11 +29,10 @@ into three things:
 There's also a global shortcut (`⌥⌘W`) that goes straight to the editor panel, for
 apps where the bubble can't read the selection.
 
-**Inline is deliberately one thing.** Earlier versions had five one-click rewrites —
-friendly, professional, concise and so on. Measured against real chat messages they
-ranged from redundant to broken, for a reason that can't be prompted away (see
-[Quality ceiling](#quality-ceiling-why-inline-cant-match-apple)). Anything beyond
-"make the grammar right" belongs in Apple's panel, which has the models for it.
+**Inline is deliberately one thing.** Grammar is what a general-purpose model is
+reliable at. Tone and summarising need the adapters Apple keeps to itself, so they live
+behind ✨ rather than being approximated badly — see
+[Quality ceiling](#quality-ceiling-why-inline-cant-match-apple).
 
 ## How it works
 
@@ -205,37 +204,37 @@ provide, not Apple's.
 So inline editing is prompt engineering against a general model, and it has a ceiling.
 That is why it does one job.
 
-### What the ceiling looked like
+### Where the ceiling shows up
 
-The five actions that used to be here, measured on real chat messages:
+Ask the base model for anything beyond correctness and it drifts, measurably. On real
+chat messages:
 
-| Action | Behaviour | Verdict |
-|---|---|---|
-| Proofread | Reliable — the base model's natural mode | **Kept** |
-| Rewrite | Usually indistinguishable from Proofread | Folded into Proofread |
-| Professional | Without a leash, a one-line message came back as a 2.4× letter template: `Hi [Recipient's Name] … Best regards, [Your Name]` | Removed |
-| Friendly | Same problem; liked appending "Thanks for your understanding!" | Removed |
-| Concise | Returned the document unchanged about half the time. Tightening the prompt made it *worse*: given "the result MUST be clearly shorter" plus a character budget, the model stopped editing and copied its input | Removed |
+| Asked for | What the general model does |
+|---|---|
+| A professional tone | A one-line note comes back as a 2.4× letter template — `Hi [Recipient's Name] … Best regards, [Your Name]`. Leashing the prompt reins in the length but not the instinct. |
+| A friendly tone | Appends pleasantries the original never contained: "Thanks for your understanding!" |
+| Something shorter | Returns the document unchanged about half the time. Tightening the prompt makes it *worse* — given "the result MUST be clearly shorter" plus a character budget, the model stops editing and copies its input. |
+| A translation | **Fabricates.** "明天" (tomorrow) comes back as "Wednesday"; an untranslated "someone" is left sitting in a Chinese sentence. |
 
-Translation was tried on the language model too, and rejected: it **fabricated**.
-"明天" (tomorrow) came back as "Wednesday", and an untranslated "someone" was left
-sitting in a Chinese sentence. `Translation.framework` makes ordinary word-choice
-mistakes instead of confident inventions — a very different kind of wrong to paste into
-someone's message.
+That last one is why Translate uses `Translation.framework` instead.
+Apple's translator makes ordinary word-choice mistakes rather than confident
+inventions — a very different kind of wrong to paste into someone's message.
 
-### What keeps the one remaining action honest
+The rest is why Proofread is the only thing done inline, and why ✨ exists.
+
+### What keeps proofreading honest
 
 1. **Guided generation.** The response is forced into a schema with a single `text`
    field, so "Here is the corrected version:" has nowhere to live. Built from
    `DynamicGenerationSchema` at runtime rather than the `@Generable` macro, whose
    compiler plugin ships only with Xcode.
 2. **A fenced document.** The text is wrapped in `⟪⟪⟪ … ⟫⟫⟫`. Without it the model
-   answers short or question-shaped input instead of editing it — `ok` produced an
-   invented paragraph, and text reading "ignore your instructions" was obeyed. The
+   answers short or question-shaped input instead of editing it — `ok` produces an
+   invented paragraph, and text reading "ignore your instructions" is obeyed. The
    model echoes fragments of the fence back, so the fence characters are trimmed as a
    character set rather than matched as whole markers.
-3. **A plausibility ceiling.** A proofread result more than ~1.6× the input is a
-   continuation, not a correction, and is discarded rather than pasted.
+3. **A plausibility ceiling.** A result more than ~1.6× the input is a continuation,
+   not a correction, and is discarded rather than pasted.
 
 When the result comes back identical to the input, the bubble says so instead of
 pasting your own words back over themselves.
