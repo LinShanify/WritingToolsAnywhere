@@ -227,7 +227,12 @@ enum LLM {
         // timeout issue" came back as "the timeout issue has been fixed", turning a list
         // of things to do into a claim they were done. Line count is a shape the edit
         // must preserve, and unlike the mood it can simply be counted.
-        let before = text.split(separator: "\n", omittingEmptySubsequences: false)
+        // Both sides must be measured the same way. `sanitize` strips the reply's leading
+        // and trailing whitespace, so comparing it against an untrimmed selection counted
+        // a trailing newline as a lost line — and a selection dragged over one line in a
+        // chat app usually carries exactly that, which rejected almost every edit.
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let before = trimmed.split(separator: "\n", omittingEmptySubsequences: false)
         let after = result.split(separator: "\n", omittingEmptySubsequences: false)
         if before.count != after.count {
             Log.write("llm: discarded result, \(before.count) lines became \(after.count)")
