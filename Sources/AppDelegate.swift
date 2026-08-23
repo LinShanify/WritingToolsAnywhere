@@ -140,6 +140,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func perform(_ action: BubbleAction, on selection: Selection) {
+        // In an app that exposes no text the bubble appeared on the strength of a drag
+        // alone, so the text is fetched now — after the user has committed to an action,
+        // never on an ordinary click.
+        guard !selection.needsClipboardRead else {
+            let prefs = self.prefs
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                let captured = TextBridge.captureSelection(prefs: prefs, forceClipboard: true)
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    guard let captured, !captured.text.isEmpty else {
+                        Log.write("blind: clipboard read found nothing")
+                        self.bubble.showMessage(L("没有取到选中的文字", "No text selected"))
+                        return
+                    }
+                    var filled = selection
+                    filled.text = captured.text
+                    filled.element = captured.element
+                    // Clear the flag before recursing, or this branch is re-entered and
+                    // the copy repeats until the clipboard races itself empty.
+                    filled.needsClipboardRead = false
+                    Log.write("blind: read \(captured.text.count) chars")
+                    self.perform(action, on: filled)
+                }
+            }
+            return
+        }
+
         switch action {
         case .writingTools:
             openPanel(with: selection)

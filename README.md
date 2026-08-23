@@ -293,11 +293,15 @@ state. Turning on the debug log writes to `~/Library/Logs/WritingToolsAnywhere.l
   managers may record that one entry.
 - Accessibility permission means the app can't be sandboxed, so it can't ship on the
   Mac App Store.
-- The bubble depends on apps reporting their selection over the Accessibility API. Most
-  native and Electron apps do; some don't at all — **WeChat never reports one**, and the
-  same goes for a few Java apps, games, custom text engines and remote desktops. The
-  bubble simply won't appear there. Use `⌥⌘W` instead: it falls back to `⌘C`, which works
-  wherever copying does.
+- Some apps expose no text at all to the Accessibility API — WeChat draws its whole
+  window itself, and 209 of its 215 accessibility nodes are the menu bar. There the
+  bubble appears on the drag alone and reads the text with a simulated copy once you
+  choose an action, so it works, but it can't know whether a drag was really a text
+  selection: expect the occasional bubble after dragging something else.
+- `⌥⌘W` opens the editor panel, which has to take focus for Writing Tools to attach.
+  Apps that drop their selection when they lose focus — WeChat is one — will paste the
+  result beside the original instead of over it. Use the bubble in those apps; it never
+  takes focus.
 - Detecting selections requires a global keyboard and mouse event monitor. Nothing is
   recorded, stored or transmitted unless you deliberately enable the debug log.
 

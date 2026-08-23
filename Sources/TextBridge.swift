@@ -99,11 +99,12 @@ enum TextBridge {
 
     /// Grab whatever the user has selected in the frontmost app.
     /// Must run on a background queue — it blocks while waiting on the clipboard.
-    static func captureSelection(prefs: Prefs) -> Capture? {
+    static func captureSelection(prefs: Prefs, forceClipboard: Bool = false) -> Capture? {
         let app = NSWorkspace.shared.frontmostApplication
         let element = app.flatMap { focusedElement(of: $0) }
 
-        if prefs.captureViaAX, let element, let text = axString(element, kAXSelectedTextAttribute as String) {
+        if !forceClipboard, prefs.captureViaAX, let element,
+           let text = axString(element, kAXSelectedTextAttribute as String) {
             return Capture(text: text, app: app, element: element)
         }
 
@@ -178,6 +179,20 @@ extension TextBridge {
         guard !manuallyEnabled.contains(pid) else { return }
         manuallyEnabled.add(pid)
         AXUIElementSetAttributeValue(appEl, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+    }
+
+    /// Whether an app exposes any text to the accessibility API at all.
+    ///
+    /// WeChat draws its entire window itself: the whole interface is one AXWindow with a
+    /// couple of buttons under it, and 209 of its 215 accessibility nodes are the menu
+    /// bar. There is no text element to ask, so a failure to produce a focused element is
+    /// taken as "this app will never report a selection" rather than "nothing is selected".
+    static func exposesText(_ app: NSRunningApplication) -> Bool {
+        let appEl = AXUIElementCreateApplication(app.processIdentifier)
+        AXUIElementSetMessagingTimeout(appEl, 0.35)
+        var value: CFTypeRef?
+        return AXUIElementCopyAttributeValue(appEl, kAXFocusedUIElementAttribute as CFString,
+                                             &value) == .success
     }
 
     struct AXSelection {

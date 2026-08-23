@@ -4,9 +4,12 @@ import ApplicationServices
 struct Selection {
     var text: String
     var app: NSRunningApplication
-    var element: AXUIElement
+    var element: AXUIElement?
     /// Where the bubble should hang, in AppKit screen coordinates (bottom-left origin).
     var anchor: NSPoint
+    /// True when the app exposes no text and `text` is still unknown — it has to be
+    /// fetched with a simulated copy at the moment an action is chosen.
+    var needsClipboardRead = false
 }
 
 /// Watches for the user selecting text in *any* app and reports it, Grammarly-style.
@@ -18,6 +21,7 @@ final class SelectionWatcher {
     private var monitors: [Any] = []
     private var pending: DispatchWorkItem?
     private var lastText = ""
+    private var dragOrigin: NSPoint?
 
     var isEnabled = true
     private let onShow: (Selection) -> Void
@@ -32,7 +36,10 @@ final class SelectionWatcher {
         stop()
         Log.write("watcher: start")
         add(.leftMouseUp) { [weak self] _ in self?.scheduleCheck(delay: 0.14) }
-        add(.leftMouseDown) { [weak self] _ in self?.dismiss() }
+        add(.leftMouseDown) { [weak self] _ in
+            self?.dragOrigin = NSEvent.mouseLocation
+            self?.dismiss()
+        }
         add(.rightMouseDown) { [weak self] _ in self?.dismiss() }
         add(.scrollWheel) { [weak self] _ in self?.dismiss() }
         add(.keyDown) { [weak self] event in
@@ -87,15 +94,18 @@ final class SelectionWatcher {
 
     private func check() {
         let front = NSWorkspace.shared.frontmostApplication
-        let peek = front.flatMap { TextBridge.peekSelection(of: $0) }
-        Log.write("check: front=" + (front?.localizedName ?? "nil")
+        guard let app = front,
+              app.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
+            dismiss(); return
+        }
+
+        let peek = TextBridge.peekSelection(of: app)
+        Log.write("check: front=" + (app.localizedName ?? "nil")
                   + " sel=" + (peek.map { String($0.text.prefix(30)) } ?? "<none>")
                   + " rect=" + (peek.map { String(describing: $0.rect) } ?? "-"))
-        guard let app = front,
-              app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
-              let sel = TextBridge.peekSelection(of: app)
-        else {
-            dismiss()
+
+        guard let sel = peek else {
+            offerBlindBubble(for: app)
             return
         }
 
@@ -108,6 +118,23 @@ final class SelectionWatcher {
         let anchor = anchorPoint(for: sel.rect)
         Log.write("check: SHOW anchor=" + String(describing: anchor))
         onShow(Selection(text: sel.text, app: app, element: sel.element, anchor: anchor))
+    }
+
+    /// For an app that exposes no text at all, the drag is the only evidence a selection
+    /// exists. Show the bubble on that alone and read the text with a simulated copy if,
+    /// and only if, an action is actually chosen — so the clipboard is touched when the
+    /// user commits, never on an ordinary click.
+    private func offerBlindBubble(for app: NSRunningApplication) {
+        guard let origin = dragOrigin, !TextBridge.exposesText(app) else {
+            dismiss(); return
+        }
+        let end = NSEvent.mouseLocation
+        let distance = hypot(end.x - origin.x, end.y - origin.y)
+        guard distance >= 15 else { dismiss(); return }
+
+        lastText = ""
+        Log.write("check: \(app.localizedName ?? "?") exposes no text — blind bubble")
+        onShow(Selection(text: "", app: app, element: nil, anchor: end, needsClipboardRead: true))
     }
 
     /// Prefer the real selection rectangle; Electron apps report 0×0, so fall back to
