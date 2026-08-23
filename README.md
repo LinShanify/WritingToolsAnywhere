@@ -69,6 +69,37 @@ all.
 works reliably in Electron apps. The previous clipboard contents are restored
 afterwards.
 
+### When an app exposes nothing at all
+
+Most apps, native or Electron, will tell the Accessibility API what text is selected.
+Some tell it nothing, because they draw their entire interface themselves. WeChat is the
+clearest case: walking its accessibility tree finds 215 nodes, of which **209 are the
+menu bar**. The main window has three buttons under it and then stops. No focused
+element can be obtained at all — not with `AXManualAccessibility`, which wakes up
+Electron apps, nor with `AXEnhancedUserInterface`, which VoiceOver uses. There is no
+text element to ask, so no amount of asking will help.
+
+That rules out reading the selection, but not the clipboard, and `⌥⌘W` does exactly
+that. Replacing still failed though, for a reason worth spelling out: **the editor panel
+has to take focus** for Writing Tools to attach to it, WeChat discards its selection the
+moment it loses focus, and the paste then lands *beside* the original instead of over
+it — leaving both the edit and the text it was meant to replace. No amount of care in
+the paste step fixes that; the panel cannot simultaneously take focus and preserve a
+selection the app has already thrown away.
+
+The bubble, by contrast, lives in a non-activating panel and never takes focus at all.
+So in an app that exposes no text it now appears **on the drag alone**, and the text is
+read with a simulated copy only once you choose an action — the clipboard is touched
+when you commit to an edit, never on an ordinary click, and the write-back was using it
+anyway.
+
+The trigger is "this app returns no focused element", not a list of app names. Anything
+else that draws its own interface gets the same treatment without having to be known
+about in advance.
+
+The cost is real and worth stating: with no text to check against, a drag that wasn't a
+text selection can still raise the bubble.
+
 ## Requirements
 
 - macOS 26 or later
