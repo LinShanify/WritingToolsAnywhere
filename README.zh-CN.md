@@ -2,8 +2,11 @@
 
 <img src="Resources/icon-preview.png" width="112" align="right">
 
-在**任何** macOS 应用里调用 Apple Intelligence 改写文字 —— 包括 Microsoft Teams、
-Slack、VS Code 这些系统原本不会出现 Writing Tools 的应用。
+**一个纯本地的轻量 Grammarly。** 同样是选中文字后浮出小球 ——
+区别是**文字从不离开你的 Mac**，不需要账号，整个 App 只有 1.6 MB。
+
+它在**任何**应用里都能用，包括 Apple 自己的 Writing Tools 永远不会出现的地方
+—— Microsoft Teams、Slack、微信。
 
 ### **[⬇ 下载最新版本](https://github.com/LinShanify/WritingToolsAnywhere/releases/latest)**
 
@@ -12,6 +15,21 @@ macOS 26+ · Apple silicon · 已签名并公证，双击直接打开，没有�
 [English](README.md)
 
 ---
+
+### 全部在你的 Mac 上运行
+
+校对用 `FoundationModels`（Apple 的端上模型），翻译用 `Translation.framework`
+（Apple 的端上翻译引擎）。**两者都不会把你的文字发到任何地方。**
+
+整个 App 只发一种网络请求：问 GitHub 有没有新版本。它**不携带任何关于你或你文字的信息**，
+而且可以在设置里关掉。
+
+不需要账号、不需要订阅、没有后台服务 —— 一个菜单栏进程、磁盘占用 1.6 MB，
+不用的时候什么都不跑。
+
+**它不是什么**：不是写作教练。它修语法、做翻译；**没有**语气选项、**没有**摘要、
+**没有**文风建议 —— 因为通用模型做这些的效果差到不如不提供。
+这条边界是**实测出来的，不是猜的** —— 见[性能上限](#性能上限内联为什么追不上官方)。
 
 ## 它能做什么
 

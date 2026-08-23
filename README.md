@@ -2,8 +2,11 @@
 
 <img src="Resources/icon-preview.png" width="112" align="right">
 
-Apple Intelligence rewriting in **any** macOS app — including the ones Apple's own
-Writing Tools never appears in, like Microsoft Teams, Slack and VS Code.
+**A local, lightweight Grammarly for macOS.** The same bubble beside your selection —
+except the text never leaves your Mac, there is no account, and the whole app is 1.6 MB.
+
+It works in **any** app, including the ones Apple's own Writing Tools never appears in,
+like Microsoft Teams, Slack and WeChat.
 
 ### **[⬇ Download the latest release](https://github.com/LinShanify/WritingToolsAnywhere/releases/latest)**
 
@@ -12,6 +15,22 @@ macOS 26+ · Apple silicon · signed and notarised, so it opens with no warnings
 [中文说明](README.zh-CN.md)
 
 ---
+
+### Everything runs on your Mac
+
+Proofreading uses `FoundationModels`, Apple's on-device model. Translation uses
+`Translation.framework`, Apple's on-device translator. Neither sends your text anywhere.
+
+The only network request the app makes is asking GitHub whether a newer version exists.
+It sends nothing about you or your text, and it can be switched off in Settings.
+
+No account, no subscription, no background service — one menu bar process, 1.6 MB on
+disk, and nothing running when you aren't using it.
+
+**What it is not:** a writing coach. It fixes grammar and translates; it has no tone
+options, no summarising, and no style advice, because a general-purpose model does those
+badly enough to be worse than not offering them. That boundary is measured, not guessed —
+see [Quality ceiling](#quality-ceiling-why-inline-cant-match-apple).
 
 ## What it does
 
