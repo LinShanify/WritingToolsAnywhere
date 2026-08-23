@@ -17,11 +17,10 @@ macOS 26+ · Apple silicon · 已签名并公证，双击直接打开，没有�
 
 在任何应用里选中文字，选区旁边浮出一个 ✨ 小球，鼠标移上去展开成三项：
 
-```
-┌──────────────────────────────┐
-│  ✓ 校对    🄰 翻译    ✨ 写作工具  │
-└──────────────────────────────┘
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="Resources/bubble-dark-zh.png">
+  <img src="Resources/bubble-light-zh.png" alt="选中文字后小球展开，显示校对、翻译、写作工具">
+</picture>
 
 - **校对** —— 修正语法、拼写和别扭的表达，直接替换原文。保留你的语气和长度，
   不会把你的话改成官腔。

@@ -18,11 +18,10 @@ macOS 26+ · Apple silicon · signed and notarised, so it opens with no warnings
 Select text anywhere, and a small ✨ bubble appears beside it. Hover, and it opens into
 three things:
 
-```
-┌────────────────────────────────────┐
-│  ✓ Proofread   🄰 Translate   ✨ More │
-└────────────────────────────────────┘
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="Resources/bubble-dark.png">
+  <img src="Resources/bubble-light.png" alt="Selected text with the bubble open beside it, showing Proofread, Translate and More">
+</picture>
 
 - **Proofread** — fixes grammar, spelling and awkward phrasing, then replaces the text
   in place. It keeps your voice and length; it does not make you sound corporate.
