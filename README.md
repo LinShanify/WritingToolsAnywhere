@@ -2,8 +2,9 @@
 
 <img src="Resources/icon-preview.png" width="112" align="right">
 
-**A local, lightweight Grammarly for macOS.** The same bubble beside your selection —
-except the text never leaves your Mac, there is no account, and the whole app is 1.6 MB.
+**A local, lightweight Grammarly for macOS, running on Apple Intelligence's on-device
+model.** The same bubble beside your selection — except the text never leaves your Mac,
+there is no account, and the whole app is 1.6 MB.
 
 It works in **any** app, including the ones Apple's own Writing Tools never appears in,
 like Microsoft Teams, Slack and WeChat.

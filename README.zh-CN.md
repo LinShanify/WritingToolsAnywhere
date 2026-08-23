@@ -2,8 +2,9 @@
 
 <img src="Resources/icon-preview.png" width="112" align="right">
 
-**一个纯本地的轻量 Grammarly。** 同样是选中文字后浮出小球 ——
-区别是**文字从不离开你的 Mac**，不需要账号，整个 App 只有 1.6 MB。
+**一个纯本地的轻量 Grammarly，跑在 Apple Intelligence 的端上模型上。**
+同样是选中文字后浮出小球 —— 区别是**文字从不离开你的 Mac**，
+不需要账号，整个 App 只有 1.6 MB。
 
 它在**任何**应用里都能用，包括 Apple 自己的 Writing Tools 永远不会出现的地方
 —— Microsoft Teams、Slack、微信。
