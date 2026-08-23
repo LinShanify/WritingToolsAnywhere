@@ -294,8 +294,10 @@ state. Turning on the debug log writes to `~/Library/Logs/WritingToolsAnywhere.l
 - Accessibility permission means the app can't be sandboxed, so it can't ship on the
   Mac App Store.
 - The bubble depends on apps reporting their selection over the Accessibility API. Most
-  native and Electron apps do; a few (some Java apps, games, custom text engines, remote
-  desktops) don't. Use `⌥⌘W` there — it falls back to `⌘C`.
+  native and Electron apps do; some don't at all — **WeChat never reports one**, and the
+  same goes for a few Java apps, games, custom text engines and remote desktops. The
+  bubble simply won't appear there. Use `⌥⌘W` instead: it falls back to `⌘C`, which works
+  wherever copying does.
 - Detecting selections requires a global keyboard and mouse event monitor. Nothing is
   recorded, stored or transmitted unless you deliberately enable the debug log.
 

@@ -201,8 +201,31 @@ extension TextBridge {
               let focused else { return nil }
         let element = focused as! AXUIElement
 
-        guard let text = axString(element, kAXSelectedTextAttribute as String),
+        guard var text = axString(element, kAXSelectedTextAttribute as String),
               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+
+        // Some apps hand back a multi-line selection with the line breaks silently
+        // dropped — Claude's own app returns three bullet points as one unbroken line.
+        // The field's full value usually still has them, so re-cut the selection from
+        // that using the reported range, and keep it only if it really is the same text
+        // with structure restored.
+        if !text.contains(where: \.isNewline) {
+            // Report which link of the chain gives out, so a failure here is diagnosable
+            // from the log instead of by guesswork.
+            let signature = text.filter { !$0.isWhitespace }
+            let candidates = axString(element, kAXValueAttribute as String)
+                .map { selectedSlices(of: $0, in: element) } ?? []
+
+            if let recovered = candidates.first(where: {
+                $0.contains(where: \.isNewline) && $0.filter({ !$0.isWhitespace }) == signature
+            }) {
+                Log.write("selection: line breaks recovered (\(text.count)ch → \(recovered.count)ch)")
+                text = recovered
+            } else if !candidates.isEmpty {
+                Log.write("selection: flat, no candidate matched "
+                          + candidates.map { "\($0.count)ch" }.joined(separator: "/"))
+            }
+        }
 
         var rect = CGRect.zero
         var rangeValue: CFTypeRef?
@@ -218,10 +241,68 @@ extension TextBridge {
         return AXSelection(text: text, element: element, rect: rect)
     }
 
+    /// The selected substring taken from the element's whole value, which preserves line
+    /// breaks that `AXSelectedText` sometimes flattens.
+    ///
+    /// An app that flattens the selected text also numbers it that way: Claude's composer
+    /// reported a 73-unit range over a 75-character value, the two missing units being
+    /// exactly its two line breaks. Cutting at the raw offsets lands two characters short.
+    /// The range is therefore treated as indices into the value with line breaks removed,
+    /// and mapped back. Both interpretations are returned so the caller can keep whichever
+    /// actually matches the selection.
+    private static func selectedSlices(of whole: String, in element: AXUIElement) -> [String] {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString,
+                                            &value) == .success, let value else { return [] }
+        var range = CFRange()
+        guard AXValueGetValue(value as! AXValue, .cfRange, &range),
+              range.location >= 0, range.length > 0 else { return [] }
+
+        var results: [String] = []
+
+        // Literal reading: offsets index the value as it is.
+        let utf16 = Array(whole.utf16)
+        let end = range.location + range.length
+        if end <= utf16.count, let literal = String(utf16: Array(utf16[range.location..<end])) {
+            results.append(literal)
+        }
+
+        // Flattened reading: offsets index the value with its line breaks removed.
+        var flatIndex = 0
+        var start: String.Index?
+        var finish: String.Index?
+        for index in whole.indices {
+            if flatIndex == range.location, start == nil { start = index }
+            if flatIndex == range.location + range.length { finish = index; break }
+            if !whole[index].isNewline { flatIndex += 1 }
+        }
+        if let start {
+            results.append(String(whole[start..<(finish ?? whole.endIndex)]))
+        }
+        return results
+    }
+
     /// AX reports screen positions with the origin at the top-left of the main display;
     /// AppKit wants the bottom-left.
     static func flip(_ point: CGPoint) -> NSPoint {
         guard let main = NSScreen.screens.first else { return NSPoint(x: point.x, y: point.y) }
         return NSPoint(x: point.x, y: main.frame.maxY - point.y)
+    }
+}
+
+private extension String {
+    /// Builds a String from UTF-16 code units, returning nil on an invalid sequence
+    /// rather than substituting replacement characters.
+    init?(utf16 units: [UInt16]) {
+        var decoder = UTF16()
+        var iterator = units.makeIterator()
+        var result = ""
+        while true {
+            switch decoder.decode(&iterator) {
+            case .scalarValue(let scalar): result.unicodeScalars.append(scalar)
+            case .emptyInput: self = result; return
+            case .error: return nil
+            }
+        }
     }
 }
