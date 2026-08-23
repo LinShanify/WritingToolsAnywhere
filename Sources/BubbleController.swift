@@ -102,25 +102,8 @@ final class BubbleController: NSObject {
     }
 
     private func makeBallView() -> NSView {
-        let view = ClickThroughView()
-        let button = ClickThroughButton(title: "", target: self, action: #selector(expand))
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.isBordered = false
-        button.bezelStyle = .regularSquare
-        button.imageScaling = .scaleProportionallyUpOrDown
-        let cfg = NSImage.SymbolConfiguration(pointSize: 15, weight: .medium)
-        button.image = NSImage(systemSymbolName: "wand.and.sparkles",
-                               accessibilityDescription: L("写作工具", "Writing Tools"))?
-            .withSymbolConfiguration(cfg)
-        button.contentTintColor = .controlAccentColor
-        button.toolTip = L("改写选中的文字", "Rewrite the selected text")
-        view.addSubview(button)
-        NSLayoutConstraint.activate([
-            button.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            button.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            button.topAnchor.constraint(equalTo: view.topAnchor),
-            button.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
+        let view = BubbleBallView()
+        view.onClick = { [weak self] in self?.expand() }
         return view
     }
 

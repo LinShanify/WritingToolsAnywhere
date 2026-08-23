@@ -87,6 +87,39 @@ final class ActionChip: NSView {
     }
 }
 
+/// The collapsed bubble — the ✨ that appears beside a selection before you hover it.
+///
+/// Lives here rather than inside BubbleController so the README's artwork can render the
+/// real thing; a hand-drawn copy would drift the first time this changed.
+final class BubbleBallView: NSView {
+    static let preferredSize = NSSize(width: 30, height: 30)
+
+    var onClick: (() -> Void)?
+
+    init() {
+        super.init(frame: NSRect(origin: .zero, size: Self.preferredSize))
+
+        let symbol = NSImageView()
+        symbol.image = NSImage(systemSymbolName: "wand.and.sparkles",
+                               accessibilityDescription: L("写作工具", "Writing Tools"))?
+            .withSymbolConfiguration(.init(pointSize: 15, weight: .medium))
+        symbol.contentTintColor = NSColor.controlAccentColor
+        symbol.imageScaling = .scaleNone
+        symbol.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(symbol)
+        NSLayoutConstraint.activate([
+            symbol.centerXAnchor.constraint(equalTo: centerXAnchor),
+            symbol.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+        toolTip = L("改写选中的文字", "Rewrite the selected text")
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override func mouseUp(with event: NSEvent) { onClick?() }
+}
+
 /// The expanded bubble: proofread, translate, and a way into Apple's own panel.
 final class ActionMenuView: NSView {
     static let preferredSize = NSSize(width: 288, height: 64)

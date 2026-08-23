@@ -18,8 +18,8 @@ macOS 26+ · Apple silicon · 已签名并公证，双击直接打开，没有�
 在任何应用里选中文字，选区旁边浮出一个 ✨ 小球，鼠标移上去展开成三项：
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="Resources/bubble-dark-zh.png">
-  <img src="Resources/bubble-light-zh.png" alt="选中文字后小球展开，显示校对、翻译、写作工具">
+  <source media="(prefers-color-scheme: dark)" srcset="Resources/bubble-dark-zh.gif">
+  <img src="Resources/bubble-light-zh.gif" alt="选中文字，小球浮出，鼠标移上去展开校对／翻译／写作工具，改好后原地替换">
 </picture>
 
 - **校对** —— 修正语法、拼写和别扭的表达，直接替换原文。保留你的语气和长度，
@@ -38,7 +38,7 @@ macOS 26+ · Apple silicon · 已签名并公证，双击直接打开，没有�
 >
 > 所以请把「校对」理解为：**把语法修对，仅此而已。** 它没有语气选项、没有摘要，
 > 因为通用模型做这些的效果差到不如不提供。中文能力弱于英文。
-> **想要官方水准就用 ✨** —— 那才是把文字交给真正的 Writing Tools。
+> **想要官方水准就用 ✨「写作工具」那个 chip** —— 那才是把文字交给真正的 Writing Tools。
 >
 > 支撑这些判断的实测数据：[性能上限](#性能上限内联为什么追不上官方)。
 
@@ -230,7 +230,7 @@ tccutil reset Accessibility com.linshan.WritingToolsAnywhere
   macOS 一更新就可能失效，在你重新训练并发版之前，所有用户的 App 都是坏的。
 - **它补不上真正的差距**，那个差距在传输格式：官方按范围原地编辑，我们是整块替换。
 
-**内联是便利路径，✨ 是质量路径。** 后者把你的文字放进一个真正的 `NSTextView`
+**内联是便利路径，✨「写作工具」是质量路径。** 后者把你的文字放进一个真正的 `NSTextView`
 再调 `showWritingTools:`，于是你拿到的是 Apple 自己的适配器、prompt 和逐条接受/拒绝
 的界面 —— 在一个本来永远不会提供这些的 App 里。
 

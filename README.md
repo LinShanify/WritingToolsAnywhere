@@ -19,8 +19,8 @@ Select text anywhere, and a small ✨ bubble appears beside it. Hover, and it op
 three things:
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="Resources/bubble-dark.png">
-  <img src="Resources/bubble-light.png" alt="Selected text with the bubble open beside it, showing Proofread, Translate and More">
+  <source media="(prefers-color-scheme: dark)" srcset="Resources/bubble-dark.gif">
+  <img src="Resources/bubble-light.gif" alt="Select text, a bubble appears beside it, hovering opens Proofread / Translate / More, and the text is replaced in place">
 </picture>
 
 - **Proofread** — fixes grammar, spelling and awkward phrasing, then replaces the text
@@ -40,7 +40,7 @@ three things:
 >
 > So expect Proofread to fix grammar well and go no further. It has no tone options and
 > no summarising, because a general model does those badly enough to be worse than not
-> offering them. Chinese is weaker than English. **For Apple's own quality, use ✨** —
+> offering them. Chinese is weaker than English. **For Apple's own quality, use the ✨ More chip** —
 > that hands the text to the real thing.
 >
 > The measurements behind all of this: [Quality ceiling](#quality-ceiling-why-inline-cant-match-apple).
@@ -263,7 +263,7 @@ toolkit. Two reasons it isn't worth it:
 - **It wouldn't close the real gap**, which is the transport: Apple edits ranges in
   place, we replace a whole selection.
 
-**Inline is the convenience path, ✨ is the quality path.** It puts your text into a real
+**Inline is the convenience path, ✨ More is the quality path.** It puts your text into a real
 `NSTextView` and calls `showWritingTools:`, so you get Apple's own adapters, prompts and
 accept/reject UI — in an app that was never going to offer them.
 
