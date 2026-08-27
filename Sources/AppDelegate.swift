@@ -38,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
         watcher.isEnabled = prefs.bubbleEnabled
+        watcher.gestureFallbackEnabled = prefs.gestureBubbleEnabled
 
         settings = SettingsWindow(prefs: prefs) { [weak self] updated in
             self?.applyPrefs(updated)
@@ -109,6 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Log.isEnabled = prefs.debugLogging
         panel.updatePrefs(prefs)
         watcher.isEnabled = prefs.bubbleEnabled
+        watcher.gestureFallbackEnabled = prefs.gestureBubbleEnabled
         if !prefs.bubbleEnabled { bubble.hide() }
 
         if hotkeyChanged {

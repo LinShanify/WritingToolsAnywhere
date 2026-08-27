@@ -121,6 +121,19 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         }
         grid.addRow(with: [label(L("悬浮球", "Bubble")), bubble])
 
+        let gesture = checkbox(L("在读不到选区的应用里，用拖拽手势触发",
+                                 "Trigger on a drag in apps that report no selection"),
+                               prefs.gestureBubbleEnabled) { [weak self] on in
+            self?.mutate { $0.gestureBubbleEnabled = on }
+        }
+        grid.addRow(with: [spacer(), gesture])
+        hint(grid, L("微信这类自绘界面的应用不上报选中的文字，只能靠手势判断。"
+                     + "代价是拖别的东西时偶尔也会浮出小球；关掉后这些应用请用快捷键。",
+                     "Apps that draw their own interface, such as WeChat, report no "
+                     + "selected text, so only the drag can be gone on. The cost is the "
+                     + "occasional bubble after dragging something else; with this off, "
+                     + "use the shortcut in those apps."))
+
         let editor = hotKeyEditor()
         let enable = checkbox(L("启用全局快捷键", "Enable the global shortcut"),
                               prefs.hotkeyEnabled) { [weak self] on in

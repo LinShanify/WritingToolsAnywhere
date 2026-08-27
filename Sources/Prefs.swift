@@ -44,6 +44,8 @@ struct Prefs: Codable {
     var hotkey = HotKeySpec()
     var hotkeyEnabled = true
     var bubbleEnabled = true
+    /// Show the bubble on a drag alone in apps that report no selection at all.
+    var gestureBubbleEnabled = true
     var autoApply = false
     var uiLanguage = UILanguage.system
     /// Your own language. Translation always runs between this and English.
@@ -59,7 +61,8 @@ struct Prefs: Codable {
     var skippedVersion = ""
 
     enum K: String, CodingKey {
-        case hotkey, hotkeyEnabled, bubbleEnabled, autoApply, uiLanguage, primaryLanguage
+        case hotkey, hotkeyEnabled, bubbleEnabled, gestureBubbleEnabled
+        case autoApply, uiLanguage, primaryLanguage
         case writeBackMode, restoreClipboard, captureViaAX, debugLogging
         case checkForUpdates, skippedVersion
     }
@@ -71,6 +74,7 @@ struct Prefs: Codable {
         hotkey = try c.decodeIfPresent(HotKeySpec.self, forKey: .hotkey) ?? HotKeySpec()
         hotkeyEnabled = try c.decodeIfPresent(Bool.self, forKey: .hotkeyEnabled) ?? true
         bubbleEnabled = try c.decodeIfPresent(Bool.self, forKey: .bubbleEnabled) ?? true
+        gestureBubbleEnabled = try c.decodeIfPresent(Bool.self, forKey: .gestureBubbleEnabled) ?? true
         autoApply = try c.decodeIfPresent(Bool.self, forKey: .autoApply) ?? false
         uiLanguage = try c.decodeIfPresent(UILanguage.self, forKey: .uiLanguage) ?? .system
         primaryLanguage = try c.decodeIfPresent(String.self, forKey: .primaryLanguage) ?? "zh-Hans"

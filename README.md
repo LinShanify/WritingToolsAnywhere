@@ -176,6 +176,7 @@ Menu bar ✨ → **Settings…** (`⌘,`)
 | Status | Accessibility | Live check, with a jump to the settings pane |
 | General | Start at login | `SMAppService`, no helper bundle |
 | General | Bubble | Turn it off to use the shortcut only |
+| General | Drag trigger | In apps that report no selection, show the bubble on the drag alone. On by default; turn it off to trade WeChat support for never seeing a stray bubble |
 | General | Shortcut | Enable or disable it, and pick the combination. Turning it off hands the keys back to other apps |
 | Language | Interface | System / 简体中文 / English |
 | Language | My language | Translation runs between this and English. Set it to English and everything non-English becomes English |

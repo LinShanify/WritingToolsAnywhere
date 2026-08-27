@@ -24,6 +24,7 @@ final class SelectionWatcher {
     private var dragOrigin: NSPoint?
 
     var isEnabled = true
+    var gestureFallbackEnabled = true
     private let onShow: (Selection) -> Void
     private let onHide: () -> Void
 
@@ -125,12 +126,16 @@ final class SelectionWatcher {
     /// and only if, an action is actually chosen — so the clipboard is touched when the
     /// user commits, never on an ordinary click.
     private func offerBlindBubble(for app: NSRunningApplication) {
-        guard let origin = dragOrigin, !TextBridge.exposesText(app) else {
+        guard gestureFallbackEnabled, let origin = dragOrigin,
+              !TextBridge.exposesText(app) else {
             dismiss(); return
         }
+        // Selecting text always drags sideways, whatever else it does; scrolling and
+        // dragging an object mostly don't. Measuring horizontal extent rather than
+        // straight-line distance throws away a whole class of false trigger while still
+        // accepting a selection that spans several lines.
         let end = NSEvent.mouseLocation
-        let distance = hypot(end.x - origin.x, end.y - origin.y)
-        guard distance >= 15 else { dismiss(); return }
+        guard abs(end.x - origin.x) >= 20 else { dismiss(); return }
 
         lastText = ""
         Log.write("check: \(app.localizedName ?? "?") exposes no text — blind bubble")
