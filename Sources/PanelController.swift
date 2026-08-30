@@ -166,7 +166,13 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     @objc func close() {
         stopPolling()
-        panel.orderOut(nil)
+
+        // Writing Tools leaves its own system UI on screen, parented to this window.
+        // orderOut only takes the panel itself away, so that UI stayed behind and read as
+        // an editor that wouldn't close — its buttons weren't ours to dismiss. Closing the
+        // window tears down what is attached to it as well.
+        panel.makeFirstResponder(nil)
+        panel.close()
         NSApp.hide(nil)
     }
 
