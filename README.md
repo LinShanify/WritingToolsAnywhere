@@ -163,7 +163,7 @@ even moving the folder.
 If permissions do get into a bad state:
 
 ```bash
-tccutil reset Accessibility com.linshan.WritingToolsAnywhere
+tccutil reset Accessibility com.linshanify.WritingToolsAnywhere
 ```
 
 ## Settings

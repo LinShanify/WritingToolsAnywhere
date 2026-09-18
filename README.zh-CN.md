@@ -144,7 +144,7 @@ ad-hoc 签名的值由二进制内容算出，所以**改一行代码重新编�
 权限真的乱了就重置：
 
 ```bash
-tccutil reset Accessibility com.linshan.WritingToolsAnywhere
+tccutil reset Accessibility com.linshanify.WritingToolsAnywhere
 ```
 
 ## 设置
