@@ -37,6 +37,9 @@ final class PanelController: NSObject, NSWindowDelegate {
         panel.level = .floating
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
+        // macOS restores windows when a login item relaunches. For this panel that
+        // means yesterday's text back on screen at boot, in front of whoever walks past.
+        panel.isRestorable = false
         panel.delegate = self
 
         let content = NSView(frame: panel.contentRect(forFrameRect: panel.frame))

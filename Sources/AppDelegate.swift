@@ -48,8 +48,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if prefs.hotkeyEnabled { _ = hotKeys.register(prefs.hotkey) }
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        // A stable identity for the item. Without it macOS has nothing to key the item's
+        // position and visibility to, and a menu bar manager has nothing to recognise.
+        statusItem.autosaveName = "WritingToolsAnywhere"
         statusItem.button?.image = MenuBarIcon.image()
         rebuildMenu()
+        let icon = statusItem.button?.image
+        Log.write("launch: statusItem button=\(statusItem.button != nil) "
+                  + "visible=\(statusItem.isVisible) len=\(statusItem.length) "
+                  + "image=\(icon.map { "\(Int($0.size.width))x\(Int($0.size.height)) template=\($0.isTemplate)" } ?? "nil") "
+                  + "btnFrame=\(statusItem.button?.frame ?? .zero)")
 
         awaitAccessibility()
         checkAppleIntelligence()

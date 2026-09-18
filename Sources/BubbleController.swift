@@ -76,6 +76,7 @@ final class BubbleController: NSObject {
         panel.becomesKeyOnlyIfNeeded = true
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
+        panel.isRestorable = false
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = true

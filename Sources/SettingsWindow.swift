@@ -28,6 +28,7 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
             w.delegate = self
             w.isReleasedWhenClosed = false
+            w.isRestorable = false
             window = w
         }
         rebuild()
