@@ -1,6 +1,6 @@
 import AppKit
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var prefs = Prefs.load()
     private var hotKeys: HotKeyManager!
     private var panel: PanelController!
@@ -68,6 +68,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func rebuildMenu() {
         let menu = NSMenu()
+        menu.delegate = self
+        populateMenu(menu)
+        statusItem.menu = menu
+    }
+
+    private func populateMenu(_ menu: NSMenu) {
+        menu.removeAllItems()
 
         let run = NSMenuItem(title: L("改写选中文字", "Rewrite Selected Text"),
                              action: #selector(trigger), keyEquivalent: "")
@@ -103,7 +110,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: L("退出", "Quit"),
                                 action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
-        statusItem.menu = menu
+    }
+
+    /// The model can move from `modelNotReady` to available after the app launches.
+    /// Rebuild just before display so the menu warning follows the live state too.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu === statusItem.menu else { return }
+        populateMenu(menu)
     }
 
     // MARK: - Settings plumbing

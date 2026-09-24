@@ -125,8 +125,9 @@ final class ActionMenuView: NSView {
     static let preferredSize = NSSize(width: 288, height: 64)
 
     var onAction: ((BubbleAction) -> Void)?
+    private var proofreadChip: ActionChip?
 
-    init(proofreadEnabled: Bool, disabledReason: String = "") {
+    init() {
         super.init(frame: NSRect(origin: .zero, size: Self.preferredSize))
 
         let row = NSStackView()
@@ -138,10 +139,7 @@ final class ActionMenuView: NSView {
         for action in BubbleAction.allCases {
             let chip = ActionChip(symbolName: action.symbol, title: action.title)
             if action == .proofread {
-                chip.isDisabled = !proofreadEnabled
-                chip.toolTip = proofreadEnabled
-                    ? L("修正语法并替换原文", "Fix the grammar and replace the text")
-                    : disabledReason
+                proofreadChip = chip
             } else if action == .translate {
                 chip.toolTip = L("在你的语言和英文之间翻译", "Translate between your language and English")
             } else {
@@ -151,6 +149,8 @@ final class ActionMenuView: NSView {
             chip.onClick = { [weak self] in self?.onAction?(action) }
             row.addArrangedSubview(chip)
         }
+
+        refreshProofreadAvailability()
 
         addSubview(row)
         NSLayoutConstraint.activate([
@@ -162,4 +162,14 @@ final class ActionMenuView: NSView {
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    /// Model readiness can change after launch while macOS downloads or prepares the
+    /// on-device model. Never leave the chip stuck with the startup snapshot.
+    func refreshProofreadAvailability() {
+        let enabled = LLM.isAvailable
+        proofreadChip?.isDisabled = !enabled
+        proofreadChip?.toolTip = enabled
+            ? L("修正语法并替换原文", "Fix the grammar and replace the text")
+            : LLM.unavailableReason
+    }
 }

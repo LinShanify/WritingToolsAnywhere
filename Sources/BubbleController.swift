@@ -48,7 +48,7 @@ final class BubbleController: NSObject {
     private var panel: BubblePanel!
     private var container: HoverView!
     private var ballView: NSView!
-    private var menuView: NSView!
+    private var menuView: ActionMenuView!
     private var workingView: NSView!
     private var workingLabel: NSTextField!
     private var spinner: NSProgressIndicator!
@@ -108,9 +108,8 @@ final class BubbleController: NSObject {
         return view
     }
 
-    private func makeMenuView() -> NSView {
-        let view = ActionMenuView(proofreadEnabled: LLM.isAvailable,
-                                  disabledReason: LLM.unavailableReason)
+    private func makeMenuView() -> ActionMenuView {
+        let view = ActionMenuView()
         view.onAction = { [weak self] action in self?.fire(action) }
         return view
     }
@@ -191,7 +190,9 @@ final class BubbleController: NSObject {
         let (view, size, radius): (NSView, NSSize, CGFloat)
         switch new {
         case .ball:    (view, size, radius) = (ballView, ballSize, ballSize.height / 2)
-        case .menu:    (view, size, radius) = (menuView, menuSize, 10)
+        case .menu:
+            menuView.refreshProofreadAvailability()
+            (view, size, radius) = (menuView, menuSize, 10)
         case .working: (view, size, radius) = (workingView, NSSize(width: 148, height: 34), 10)
         }
 
