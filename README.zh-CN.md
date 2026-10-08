@@ -11,7 +11,7 @@
 
 ### **[⬇ 下载最新版本](https://github.com/LinShanify/WritingToolsAnywhere/releases/latest)**
 
-macOS 26+ · Apple silicon · 签名状态与安装说明见各版本发布说明
+macOS 26+ · Apple silicon · Developer ID 正式签名并通过 Apple 公证
 
 [English](README.md)
 
@@ -114,14 +114,8 @@ Obsidian 才会上报选区。
 
 ## 安装
 
-下载 `.dmg` 把 App 拖进「应用程序」。**v1.13 使用临时签名，未做 Apple 公证**，
-因为当前发布机器没有 Developer ID 签名证书。安装此版本后，运行：
-
-```bash
-xattr -dr com.apple.quarantine /Applications/WritingToolsAnywhere.app
-```
-
-各版本的签名状态见发布说明；之前已公证的版本仍可在 Releases 页面下载。
+下载 `.dmg` 把 App 拖进「应用程序」。**v1.13 已使用 Developer ID 正式签名，
+并通过 Apple 公证。** App 和 DMG 均已装订公证票据，并通过 Gatekeeper 检查。
 
 **覆盖安装旧版本时**：macOS 不允许替换正在运行的程序，先从菜单栏退出。
 App 内的更新提示会主动帮你做这一步。
@@ -276,11 +270,15 @@ tccutil reset Accessibility com.linshanify.WritingToolsAnywhere
 ```bash
 ./package.sh                        # 产出 dist/*.dmg
 ./package.sh --notarize <配置名>     # 额外做公证与装订
+./package.sh --allow-adhoc           # 仅用于本地测试的临时签名包
 ```
 
-有 `Developer ID Application` 证书就用它签名，否则退回 ad-hoc 并打印警告。
-App 和磁盘映像**都会**签名并装订，脚本随后按 Gatekeeper 的视角复核结果
+分发打包必须有 `Developer ID Application` 签名身份；缺失时先从 `.p12` 备份恢复
+证书和私钥。临时签名包必须显式指定 `--allow-adhoc`，仅用于本地测试。
+指定 `--notarize` 时，会先检查公证凭据，再进行构建，
+App 和磁盘映像都会签名、公证并装订，脚本随后按 Gatekeeper 的视角复核结果
 —— 签名有问题会在这里失败，而不是在别人的 Mac 上失败。
+换 Mac 后，签名身份与公证凭据需要分别恢复。
 
 `<配置名>` 是一个 `notarytool` 钥匙串配置，用 `xcrun notarytool store-credentials` 建一次即可。
 

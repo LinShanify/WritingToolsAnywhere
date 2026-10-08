@@ -1,15 +1,16 @@
 #!/bin/bash
 # Builds a distributable copy and wraps it in a DMG.
 #
-#   ./package.sh                 build + sign with the best identity available
+#   ./package.sh                 build + sign with Developer ID
 #   ./package.sh --notarize WTA  additionally notarise and staple, using the
 #                                notarytool keychain profile named "WTA"
+#   ./package.sh --allow-adhoc   explicitly permit an ad-hoc local test package
 #
 # Signing identity is chosen automatically:
 #   1. "Developer ID Application: …"  → hardened runtime + secure timestamp, so the
-#      result can be notarised and will open on any Mac with no warning.
-#   2. anything else                  → ad-hoc. The app still runs, but every recipient
-#      has to clear Gatekeeper by hand (see the note printed at the end).
+#      result can be notarised with --notarize.
+#   2. no Developer ID                → fail; restore the signing identity first.
+#      Ad-hoc packages require --allow-adhoc and are intended for local testing.
 #
 # The local "WritingToolsAnywhere Dev" certificate is deliberately NOT used here: it is
 # trusted only on the machine that created it, so shipping it helps nobody.
@@ -22,25 +23,39 @@ APP_NAME="WritingToolsAnywhere"
 STAGE=$(mktemp -d)
 BUNDLE="$STAGE/$APP_NAME.app"
 NOTARY_PROFILE=""
+ALLOW_ADHOC=0
+trap 'rm -rf "$STAGE"' EXIT
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --notarize) NOTARY_PROFILE="${2:-}"; shift 2 ;;
+        --notarize)
+            if [[ -z "${2:-}" || "$2" == --* ]]; then
+                echo "--notarize requires a keychain profile name"; exit 1
+            fi
+            NOTARY_PROFILE="$2"; shift 2 ;;
+        --allow-adhoc) ALLOW_ADHOC=1; shift ;;
         *) echo "unknown argument: $1"; exit 1 ;;
     esac
 done
 
-trap 'rm -rf "$STAGE"' EXIT
+DEV_ID=$(security find-identity -v -p codesigning \
+         | grep "Developer ID Application" | head -1 \
+         | sed -E 's/.*"(.*)"/\1/' || true)
+if [ -z "$DEV_ID" ] && { [ "$ALLOW_ADHOC" != "1" ] || [ -n "$NOTARY_PROFILE" ]; }; then
+    echo "✗ No Developer ID signing identity. Restore your certificate and private key first."
+    echo "  For a local test package only, explicitly use --allow-adhoc."
+    exit 1
+fi
+if [ -n "$NOTARY_PROFILE" ]; then
+    echo "→ checking notarisation credentials ($NOTARY_PROFILE)"
+    xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null
+fi
 
 [ -f Resources/AppIcon.icns ] || ./make-icon.sh
 ./build.sh
 cp -R "build/$APP_NAME.app" "$BUNDLE"
 
 VERSION=$(defaults read "$BUNDLE/Contents/Info.plist" CFBundleShortVersionString)
-DEV_ID=$(security find-identity -v -p codesigning \
-         | grep "Developer ID Application" | head -1 \
-         | sed -E 's/.*"(.*)"/\1/' || true)
-
 if [ -n "$DEV_ID" ]; then
     echo "→ signing for distribution: $DEV_ID"
     # Capture rather than stream: codesign reports a missing intermediate as a *warning*
@@ -208,7 +223,7 @@ if [ "$SIGNED_PROPERLY" != "1" ]; then
     To remove that step, get an Apple Developer account, then:
 
         xcrun notarytool store-credentials WTA \
-            --apple-id you@example.com --team-id TEAMID --password APP-SPECIFIC-PW
+            --apple-id you@example.com --team-id TEAMID
         ./package.sh --notarize WTA
 NOTE
 fi

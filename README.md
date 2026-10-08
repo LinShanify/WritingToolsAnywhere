@@ -11,7 +11,7 @@ like Microsoft Teams, Slack and WeChat.
 
 ### **[⬇ Download the latest release](https://github.com/LinShanify/WritingToolsAnywhere/releases/latest)**
 
-macOS 26+ · Apple silicon · see release notes for signing and installation details
+macOS 26+ · Apple silicon · Developer ID signed and Apple notarised
 
 [中文说明](README.zh-CN.md)
 
@@ -129,16 +129,9 @@ text selection can still raise the bubble.
 
 ## Install
 
-Download the `.dmg` and drag the app to Applications. **v1.13 is ad-hoc signed and
-not notarised** because the release machine currently has no Developer ID signing
-identity. For this release, after installing, run:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/WritingToolsAnywhere.app
-```
-
-Signing status is listed in each release's notes; earlier notarised releases remain
-available on the Releases page.
+Download the `.dmg` and drag the app to Applications. **v1.13 is signed with Developer ID
+and notarised by Apple.** Both the app and disk image include stapled notarisation
+tickets and pass Gatekeeper checks.
 
 Updating over an existing copy? macOS won't replace a running app — quit it from the
 menu bar first. The in-app update prompt offers to do that for you.
@@ -315,15 +308,19 @@ accept/reject UI — in an app that was never going to offer them.
 ```bash
 ./package.sh                        # dist/*.dmg
 ./package.sh --notarize <profile>   # also notarise and staple
+./package.sh --allow-adhoc           # local test package only
 ```
 
-Signing uses a `Developer ID Application` certificate if you have one, otherwise ad-hoc
-with a warning. The app and the disk image are both signed and stapled, and the script
-then checks the result the way Gatekeeper will — a broken signature fails here rather
-than on someone else's Mac.
+Distribution packaging requires a `Developer ID Application` identity. If it is missing,
+restore the certificate and private key from your `.p12` backup first. Ad-hoc packaging
+requires the explicit `--allow-adhoc` option and is intended for local testing.
+
+With `--notarize`, the script checks the keychain profile before building, signs and
+staples both the app and disk image, and checks them with Gatekeeper.
 
 `<profile>` is a `notarytool` keychain profile, created once with
 `xcrun notarytool store-credentials`.
+Signing identities and notarisation profiles must be restored separately on a new Mac.
 
 ## Project layout
 
