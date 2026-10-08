@@ -11,7 +11,7 @@ like Microsoft Teams, Slack and WeChat.
 
 ### **[⬇ Download the latest release](https://github.com/LinShanify/WritingToolsAnywhere/releases/latest)**
 
-macOS 26+ · Apple silicon · signed and notarised, so it opens with no warnings
+macOS 26+ · Apple silicon · see release notes for signing and installation details
 
 [中文说明](README.zh-CN.md)
 
@@ -129,8 +129,16 @@ text selection can still raise the bubble.
 
 ## Install
 
-Download the `.dmg` and drag the app to Applications. The disk image and the app are
-both signed with a Developer ID and notarised, so it opens with no warnings.
+Download the `.dmg` and drag the app to Applications. **v1.13 is ad-hoc signed and
+not notarised** because the release machine currently has no Developer ID signing
+identity. For this release, after installing, run:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/WritingToolsAnywhere.app
+```
+
+Signing status is listed in each release's notes; earlier notarised releases remain
+available on the Releases page.
 
 Updating over an existing copy? macOS won't replace a running app — quit it from the
 menu bar first. The in-app update prompt offers to do that for you.
@@ -247,6 +255,12 @@ kind of wrong to paste into someone's message.
 
 ### What keeps proofreading honest
 
+The proofreading instructions adapt the correction checklist and first five review
+steps from a [community extraction of iOS 27's TextComposerRuntime prompt](https://gist.github.com/samhenrigold/4d107eddf2c0a9d0afb428922adcc2c3)
+(`030_NEW27_you_are_a_professional_proofreading_assistant_yo.txt`). That extraction
+ends partway through step 6, so this is an adaptation of the available fragment,
+with this app's own language, layout and output rules.
+
 1. **Guided generation.** The response is forced into a schema with a single `text`
    field, so "Here is the corrected version:" has nowhere to live. Built from
    `DynamicGenerationSchema` at runtime rather than the `@Generable` macro, whose
@@ -270,8 +284,16 @@ kind of wrong to paste into someone's message.
    The same detector checks the reply, and a result that changed language is discarded —
    the check is deliberately not the model's own judgement.
 
-When the result comes back identical to the input, the bubble says so instead of pasting
-your own words back over themselves.
+An unchanged, malformed, or refused response gets one fresh attempt using Apple's
+`permissiveContentTransformations` mode with a plain text response (that mode does not
+apply to schema-based generation). The retry still passes the length, language and
+structure checks, and common refusal messages and chat preambles are rejected. Empty
+responses are errors, not evidence that the text is correct.
+
+If both attempts suggest no edits, the bubble says **No changes suggested** instead of
+pasting your own words back over themselves. This is the model's suggestion, not a
+guarantee that the text has no errors. Content-check blocks and model refusals have
+separate messages pointing to **More**.
 
 ### Could we train our own adapter?
 

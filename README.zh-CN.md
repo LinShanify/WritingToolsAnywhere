@@ -11,7 +11,7 @@
 
 ### **[⬇ 下载最新版本](https://github.com/LinShanify/WritingToolsAnywhere/releases/latest)**
 
-macOS 26+ · Apple silicon · 已签名并公证，双击直接打开，没有任何警告
+macOS 26+ · Apple silicon · 签名状态与安装说明见各版本发布说明
 
 [English](README.md)
 
@@ -114,8 +114,14 @@ Obsidian 才会上报选区。
 
 ## 安装
 
-下载 `.dmg` 把 App 拖进「应用程序」。磁盘映像和 App 都经过 Developer ID 签名与
-Apple 公证，双击直接打开，没有任何警告。
+下载 `.dmg` 把 App 拖进「应用程序」。**v1.13 使用临时签名，未做 Apple 公证**，
+因为当前发布机器没有 Developer ID 签名证书。安装此版本后，运行：
+
+```bash
+xattr -dr com.apple.quarantine /Applications/WritingToolsAnywhere.app
+```
+
+各版本的签名状态见发布说明；之前已公证的版本仍可在 Releases 页面下载。
 
 **覆盖安装旧版本时**：macOS 不允许替换正在运行的程序，先从菜单栏退出。
 App 内的更新提示会主动帮你做这一步。
@@ -222,6 +228,12 @@ tccutil reset Accessibility com.linshanify.WritingToolsAnywhere
 
 ### 校对靠什么守住
 
+校对提示词采用了[社区提取的 iOS 27 TextComposerRuntime 校对提示词](https://gist.github.com/samhenrigold/4d107eddf2c0a9d0afb428922adcc2c3)
+中完整的检查项目和前五步检查顺序，来源文件为
+`030_NEW27_you_are_a_professional_proofreading_assistant_yo.txt`。
+提取内容在第六步中途截断，因此这里使用的是已知片段的改编版，并补上本应用的语言、
+格式和输出规则。
+
 1. **引导式生成**。响应被强制填进只有一个 `text` 字段的 schema，
    「Here is the corrected version:」无处安放。用 `DynamicGenerationSchema` 运行时构建，
    而不是 `@Generable` 宏——那个宏的编译器插件只随 Xcode 发布。
@@ -238,8 +250,13 @@ tccutil reset Accessibility com.linshanify.WritingToolsAnywhere
    你的回复必须是中文」之后就不再翻译。同一个识别器会复核输出，语种变了就丢弃
    ——**这道检查刻意不交给模型自己判断**。
 
-如果结果和原文完全一致，悬浮球会告诉你「没有可改的地方」，而不是把你自己的话
-原样贴回你自己身上。
+返回原文、结果异常或模型拒绝时，会用 Apple 的 `permissiveContentTransformations`
+文本转换模式重新尝试一次。该模式只对普通文本响应生效，不适用于结构化生成；重试结果
+仍须通过长度、语言、行结构检查，常见拒绝话术和解释性前言也会被拦截。空响应属于失败，
+不会再被当作「没有可改的地方」。
+
+两次都没有建议修改时，悬浮球显示「未发现可自动修改的地方」——这是模型的建议，
+不代表原文一定没有错误。内容检查拦截与模型拒绝会分别提示，并指向「写作工具」。
 
 ### 那自己训一个适配器行不行
 

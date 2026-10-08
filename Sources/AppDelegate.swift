@@ -221,7 +221,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
                 guard let result, result != selection.text else {
                     await MainActor.run {
-                        self.bubble.showMessage(L("没有可改的地方", "Nothing to change"))
+                        self.bubble.showMessage(L("未发现可自动修改的地方", "No changes suggested"))
                     }
                     return
                 }
